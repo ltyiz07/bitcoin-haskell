@@ -59,7 +59,10 @@ library
     import:           warnings
 
     -- Modules exported by the library.
-    exposed-modules:  MyLib
+    exposed-modules:  Field
+                    , Field.FiniteField
+                    , Field.RealField
+                    , Utils.Prime
 
     -- Modules included in this library but not exported.
     -- other-modules:
@@ -90,9 +93,8 @@ executable impl-btc
     -- other-extensions:
 
     -- Other library packages from which modules are imported.
-    build-depends:
-        base ^>=4.20.2.0,
-        impl-btc
+    build-depends:    base ^>=4.20.2.0
+                    , impl-btc
 
     -- Directories containing source files.
     hs-source-dirs:   app
@@ -108,7 +110,9 @@ test-suite impl-btc-test
     default-language: GHC2024
 
     -- Modules included in this executable, other than Main.
-    -- other-modules:
+    other-modules:    PrimeSpec
+                    , FiniteFieldSpec
+                    , RealFieldSpec
 
     -- LANGUAGE extensions used by modules in this package.
     -- other-extensions:
@@ -123,6 +127,9 @@ test-suite impl-btc-test
     main-is:          Main.hs
 
     -- Test dependencies.
-    build-depends:
-        base ^>=4.20.2.0,
-        impl-btc
+    build-depends:    base ^>=4.20.2.0
+                    , impl-btc
+                    , hspec ^>=2.11
+                    , QuickCheck ^>=2.14
+
+
