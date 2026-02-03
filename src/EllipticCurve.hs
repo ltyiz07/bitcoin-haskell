@@ -2,8 +2,8 @@ module EllipticCurve
     ( Point(..)
     , EllipticCurve(..)
     , mkPoint
-    , isOnCurve
     , mkEllipticCurve
+    , isOnCurve
     ) where
 
 import Field
