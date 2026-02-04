@@ -10,6 +10,9 @@ import EllipticCurve
 spec :: H.Spec
 spec = do
     H.describe "method: isOnCurve for RealField" $ do
+        H.it "point at infinity should be on curve" $ do
+            let curve = mkEllipticCurve (mkRealField 5) (mkRealField 7)
+            isOnCurve curve Infinity `H.shouldBe` True
         H.it "point is on or off curve" $ do
             let curve = mkEllipticCurve (mkRealField 5) (mkRealField 7)
                 p0 = mkPoint (mkRealField (-1)) (mkRealField 1)
@@ -22,6 +25,10 @@ spec = do
             isOnCurve curve p2 `H.shouldBe` True
             isOnCurve curve p3 `H.shouldBe` True
             isOnCurve curve p4 `H.shouldBe` False
+        H.it "make point on curve" $ do
+            let curve = mkEllipticCurve (mkRealField 5) (mkRealField 7)
+            mkPointOnCurve curve (mkRealField (-1)) (mkRealField 1) `H.shouldBe` Just (Point (mkRealField (-1)) (mkRealField 1))
+            mkPointOnCurve curve (mkRealField 2) (mkRealField 4) `H.shouldBe` Nothing
 
     H.describe "method: isOnCurve for FiniteField" $ do
         H.it "point is on curve" $ do
@@ -55,7 +62,13 @@ spec = do
             isOnCurve curve p4 `H.shouldBe` True
             isOnCurve curve p5 `H.shouldBe` False
 
-
+    H.describe "method: addPoint for RealField" $ do
+        H.it "add with point at infinity" $ do
+            let curve = mkEllipticCurve (mkRealField 5) (mkRealField 7)
+                Just p1 = mkPointOnCurve curve (mkRealField (-1)) (mkRealField 1)
+            addPoint curve Infinity Infinity `H.shouldBe` Infinity
+            addPoint curve Infinity p1 `H.shouldBe` p1
+            addPoint curve p1 Infinity `H.shouldBe` p1
 
     H.describe "--WIP case start" $ do
         H.it "WIP case end--" $ do
