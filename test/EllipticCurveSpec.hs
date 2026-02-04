@@ -86,6 +86,70 @@ spec = do
                 Just p2 = mkPointOnCurve curve (mkRealField (-1)) (mkRealField (-1))
             addPoint curve p1 p2 `H.shouldBe` Point (mkRealField 3) (mkRealField (-7))
 
+    H.describe "method addPoint for FiniteField" $ do
+        H.it "add points" $ do
+            let mkff = flip mkFiniteField 223
+                Just a = mkff 0
+                Just b = mkff 7
+                curve = mkEllipticCurve a b
+                Just x1 = mkff 192
+                Just y1 = mkff 105
+                Just x2 = mkff 17
+                Just y2 = mkff 56
+                Just x3 = mkff 170
+                Just y3 = mkff 142
+                Just p1 = mkPointOnCurve curve x1 y1
+                Just p2 = mkPointOnCurve curve x2 y2
+                Just p3 = mkPointOnCurve curve x3 y3
+            addPoint curve p1 p2 `H.shouldBe` p3
+    H.describe "extra test cases for FiniteField" $ do
+        H.it "add points" $ do
+            let mkff = flip mkFiniteField 223
+                Just a = mkff 0
+                Just b = mkff 7
+                curve = mkEllipticCurve a b
+            let Just x1 = mkff 47
+                Just y1 = mkff 71
+                Just x2 = mkff 117
+                Just y2 = mkff 141
+                Just x3 = mkff 60
+                Just y3 = mkff 139
+                Just p1 = mkPointOnCurve curve x1 y1
+                Just p2 = mkPointOnCurve curve x2 y2
+                Just p3 = mkPointOnCurve curve x3 y3
+            addPoint curve p1 p2 `H.shouldBe` p3
+            let Just x1 = mkff 143
+                Just y1 = mkff 98
+                Just x2 = mkff 76
+                Just y2 = mkff 66
+                Just x3 = mkff 47
+                Just y3 = mkff 71
+                Just p1 = mkPointOnCurve curve x1 y1
+                Just p2 = mkPointOnCurve curve x2 y2
+                Just p3 = mkPointOnCurve curve x3 y3
+            addPoint curve p1 p2 `H.shouldBe` p3
+            let Just x1 = mkff 170
+                Just y1 = mkff 142
+                Just x2 = mkff 60
+                Just y2 = mkff 139
+                Just p1 = mkPointOnCurve curve x1 y1
+                Just p2 = mkPointOnCurve curve x2 y2
+            print $ "(170,142) + (60,139) = " ++ show (addPoint curve p1 p2)
+            let Just x1 = mkff 47
+                Just y1 = mkff 71
+                Just x2 = mkff 17
+                Just y2 = mkff 56
+                Just p1 = mkPointOnCurve curve x1 y1
+                Just p2 = mkPointOnCurve curve x2 y2
+            print $ "(47,71) + (17,56) = " ++ show (addPoint curve p1 p2)
+            let Just x1 = mkff 143
+                Just y1 = mkff 98
+                Just x2 = mkff 76
+                Just y2 = mkff 66
+                Just p1 = mkPointOnCurve curve x1 y1
+                Just p2 = mkPointOnCurve curve x2 y2
+            print $ "(143,98) + (76,66) = " ++ show (addPoint curve p1 p2)
+
 
     H.describe "--WIP case start" $ do
         H.it "WIP case end--" $ do

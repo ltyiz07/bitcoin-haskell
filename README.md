@@ -2,7 +2,7 @@
 
 ## TODOs
 
-- [ ] EllipticCurve add method
+- [x] EllipticCurve add method
     - [x] add with point at infinity
         - case: 'point at infinity' is 'identity element'
     - [x] x_1 == x_2 && y_1 == y_2 && y_1 == 0
