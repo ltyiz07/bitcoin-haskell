@@ -28,6 +28,8 @@ instance Field RealField where
         | a == 0    = Nothing
         | otherwise = Just $ RealField (1 / a)
 
+    fromIntWith _ a = RealField (fromIntegral a) 
+
 -- | 실수체 원소 생성
 mkRealField :: Double -> RealField
 mkRealField = RealField

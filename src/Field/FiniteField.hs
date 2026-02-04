@@ -39,6 +39,9 @@ instance Field FiniteField where
         | a == 0 = Nothing
         | otherwise = Just $ FiniteField (modInverse a p) p
 
+    fromIntWith (FiniteField _ p) a = FiniteField (a `mod` p) p
+        
+
 mkFiniteField :: Integer -> Integer -> Maybe FiniteField
 mkFiniteField v p
     | v < 0 || v >= p = Nothing

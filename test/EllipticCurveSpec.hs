@@ -69,10 +69,26 @@ spec = do
             addPoint curve Infinity Infinity `H.shouldBe` Infinity
             addPoint curve Infinity p1 `H.shouldBe` p1
             addPoint curve p1 Infinity `H.shouldBe` p1
+        H.it "add same points with perpendicular to the x-axis and tangent to curve" $ do
+            let curve1 = mkEllipticCurve (mkRealField 6) (mkRealField 7)
+                Just p1 = mkPointOnCurve curve1 (mkRealField (-1)) (mkRealField 0)
+                curve2 = mkEllipticCurve (mkRealField 3) (mkRealField 4)
+                Just p2 = mkPointOnCurve curve2 (mkRealField (-1)) (mkRealField 0)
+            addPoint curve1 p1 p1 `H.shouldBe` Infinity
+            addPoint curve2 p2 p2 `H.shouldBe` Infinity
+        H.it "add same points" $ do
+            let curve = mkEllipticCurve (mkRealField 5) (mkRealField 7)
+                Just p = mkPointOnCurve curve (mkRealField (-1)) (mkRealField (-1))
+            addPoint curve p p `H.shouldBe` Point (mkRealField 18) (mkRealField 77)
+        H.it "add different points" $ do
+            let curve = mkEllipticCurve (mkRealField 5) (mkRealField 7)
+                Just p1 = mkPointOnCurve curve (mkRealField 2) (mkRealField 5)
+                Just p2 = mkPointOnCurve curve (mkRealField (-1)) (mkRealField (-1))
+            addPoint curve p1 p2 `H.shouldBe` Point (mkRealField 3) (mkRealField (-7))
+
 
     H.describe "--WIP case start" $ do
         H.it "WIP case end--" $ do
             print $ v
-                where
-                    v = "working on"
+                where v = "hello"
 
