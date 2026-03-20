@@ -1,158 +1,101 @@
 module EllipticCurveSpec (spec) where
 
 import qualified Test.Hspec as H
-import qualified Test.QuickCheck as QC
-import Field
+import Data.Maybe (fromJust)
+
 import Field.FiniteField
-import Field.RealField
+import Field.RationalField
 import EllipticCurve
+
+-- For cleaner test code with type-safe FiniteFields
+type F223 = FiniteField 223
+type F103 = FiniteField 103
 
 spec :: H.Spec
 spec = do
-    H.describe "method: isOnCurve for RealField" $ do
+    H.describe "method: isOnCurve for RationalField" $ do
         H.it "point at infinity should be on curve" $ do
-            let curve = mkEllipticCurve (mkRealField 5) (mkRealField 7)
+            let curve = mkEllipticCurve 5 7 :: EllipticCurve RationalField
             isOnCurve curve Infinity `H.shouldBe` True
         H.it "point is on or off curve" $ do
-            let curve = mkEllipticCurve (mkRealField 5) (mkRealField 7)
-                p0 = mkPoint (mkRealField (-1)) (mkRealField 1)
-                p1 = mkPoint (mkRealField 2) (mkRealField 4)
-                p2 = mkPoint (mkRealField (-1)) (mkRealField (-1))
-                p3 = mkPoint (mkRealField 18) (mkRealField 77)
-                p4 = mkPoint (mkRealField 5) (mkRealField 7)
+            let curve = mkEllipticCurve 5 7 :: EllipticCurve RationalField
+                p0 = Point (-1) 1
+                p1 = Point 2 4
+                p2 = Point (-1) (-1)
+                p3 = Point 18 77
+                p4 = Point 5 7
             isOnCurve curve p0 `H.shouldBe` True
             isOnCurve curve p1 `H.shouldBe` False
             isOnCurve curve p2 `H.shouldBe` True
             isOnCurve curve p3 `H.shouldBe` True
             isOnCurve curve p4 `H.shouldBe` False
         H.it "make point on curve" $ do
-            let curve = mkEllipticCurve (mkRealField 5) (mkRealField 7)
-            mkPointOnCurve curve (mkRealField (-1)) (mkRealField 1) `H.shouldBe` Just (Point (mkRealField (-1)) (mkRealField 1))
-            mkPointOnCurve curve (mkRealField 2) (mkRealField 4) `H.shouldBe` Nothing
+            let curve = mkEllipticCurve 5 7 :: EllipticCurve RationalField
+            mkPointOnCurve curve (-1) 1 `H.shouldBe` Just (Point (-1) 1)
+            mkPointOnCurve curve 2 4 `H.shouldBe` Nothing
 
     H.describe "method: isOnCurve for FiniteField" $ do
         H.it "point is on curve" $ do
-            let mkff = flip mkFiniteField 103
-                curve = mkEllipticCurve a b
-                    where
-                        Just a = mkff 0
-                        Just b = mkff 7
-                p = mkPoint x y
-                    where Just x = mkff 17; Just y = mkff 64
+            let curve = mkEllipticCurve 0 7 :: EllipticCurve F103
+                p = Point 17 64
             isOnCurve curve p `H.shouldBe` True
         H.it "point is on or off curve" $ do
-            let mkff = flip mkFiniteField 223
-                curve = mkEllipticCurve a b
-                    where
-                        Just a = mkff 0
-                        Just b = mkff 7
-                p1 = mkPoint x y
-                    where Just x = mkff 192; Just y = mkff 105
-                p2 = mkPoint x y
-                    where Just x = mkff 17; Just y = mkff 56
-                p3 = mkPoint x y
-                    where Just x = mkff 200; Just y = mkff 119
-                p4 = mkPoint x y
-                    where Just x = mkff 1; Just y = mkff 193
-                p5 = mkPoint x y
-                    where Just x = mkff 42; Just y = mkff 99
+            let curve = mkEllipticCurve 0 7 :: EllipticCurve F223
+                p1 = Point 192 105
+                p2 = Point 17 56
+                p3 = Point 200 119
+                p4 = Point 1 193
+                p5 = Point 42 99
             isOnCurve curve p1 `H.shouldBe` True
             isOnCurve curve p2 `H.shouldBe` True
             isOnCurve curve p3 `H.shouldBe` False
             isOnCurve curve p4 `H.shouldBe` True
             isOnCurve curve p5 `H.shouldBe` False
 
-    H.describe "method: addPoint for RealField" $ do
+    H.describe "method: addPoint for RationalField" $ do
         H.it "add with point at infinity" $ do
-            let curve = mkEllipticCurve (mkRealField 5) (mkRealField 7)
-                Just p1 = mkPointOnCurve curve (mkRealField (-1)) (mkRealField 1)
+            let curve = mkEllipticCurve 5 7 :: EllipticCurve RationalField
+                p1 = fromJust $ mkPointOnCurve curve (-1) 1
             addPoint curve Infinity Infinity `H.shouldBe` Infinity
             addPoint curve Infinity p1 `H.shouldBe` p1
             addPoint curve p1 Infinity `H.shouldBe` p1
-        H.it "add same points with perpendicular to the x-axis and tangent to curve" $ do
-            let curve1 = mkEllipticCurve (mkRealField 6) (mkRealField 7)
-                Just p1 = mkPointOnCurve curve1 (mkRealField (-1)) (mkRealField 0)
-                curve2 = mkEllipticCurve (mkRealField 3) (mkRealField 4)
-                Just p2 = mkPointOnCurve curve2 (mkRealField (-1)) (mkRealField 0)
+        H.it "add same points with perpendicular to the x-axis and tangent to curve (y=0)" $ do
+            let curve1 = mkEllipticCurve 6 7 :: EllipticCurve RationalField
+                p1 = fromJust $ mkPointOnCurve curve1 (-1) 0
+            let curve2 = mkEllipticCurve 3 4 :: EllipticCurve RationalField
+                p2 = fromJust $ mkPointOnCurve curve2 (-1) 0
             addPoint curve1 p1 p1 `H.shouldBe` Infinity
             addPoint curve2 p2 p2 `H.shouldBe` Infinity
         H.it "add same points" $ do
-            let curve = mkEllipticCurve (mkRealField 5) (mkRealField 7)
-                Just p = mkPointOnCurve curve (mkRealField (-1)) (mkRealField (-1))
-            addPoint curve p p `H.shouldBe` Point (mkRealField 18) (mkRealField 77)
+            let curve = mkEllipticCurve 5 7 :: EllipticCurve RationalField
+                p = fromJust $ mkPointOnCurve curve (-1) (-1)
+            addPoint curve p p `H.shouldBe` Point 18 77
         H.it "add different points" $ do
-            let curve = mkEllipticCurve (mkRealField 5) (mkRealField 7)
-                Just p1 = mkPointOnCurve curve (mkRealField 2) (mkRealField 5)
-                Just p2 = mkPointOnCurve curve (mkRealField (-1)) (mkRealField (-1))
-            addPoint curve p1 p2 `H.shouldBe` Point (mkRealField 3) (mkRealField (-7))
+            let curve = mkEllipticCurve 5 7 :: EllipticCurve RationalField
+                p1 = fromJust $ mkPointOnCurve curve 2 5
+                p2 = fromJust $ mkPointOnCurve curve (-1) (-1)
+            addPoint curve p1 p2 `H.shouldBe` Point 3 (-7)
 
     H.describe "method addPoint for FiniteField" $ do
-        H.it "add points" $ do
-            let mkff = flip mkFiniteField 223
-                Just a = mkff 0
-                Just b = mkff 7
-                curve = mkEllipticCurve a b
-                Just x1 = mkff 192
-                Just y1 = mkff 105
-                Just x2 = mkff 17
-                Just y2 = mkff 56
-                Just x3 = mkff 170
-                Just y3 = mkff 142
-                Just p1 = mkPointOnCurve curve x1 y1
-                Just p2 = mkPointOnCurve curve x2 y2
-                Just p3 = mkPointOnCurve curve x3 y3
+        H.it "add points (192,105) + (17,56)" $ do
+            let curve = mkEllipticCurve 0 7 :: EllipticCurve F223
+                p1 = fromJust $ mkPointOnCurve curve 192 105
+                p2 = fromJust $ mkPointOnCurve curve 17 56
+                p3 = Point 170 142
             addPoint curve p1 p2 `H.shouldBe` p3
-    H.describe "extra test cases for FiniteField" $ do
-        H.it "add points" $ do
-            let mkff = flip mkFiniteField 223
-                Just a = mkff 0
-                Just b = mkff 7
-                curve = mkEllipticCurve a b
-            let Just x1 = mkff 47
-                Just y1 = mkff 71
-                Just x2 = mkff 117
-                Just y2 = mkff 141
-                Just x3 = mkff 60
-                Just y3 = mkff 139
-                Just p1 = mkPointOnCurve curve x1 y1
-                Just p2 = mkPointOnCurve curve x2 y2
-                Just p3 = mkPointOnCurve curve x3 y3
+        H.it "add points (47,71) + (117,141)" $ do
+            let curve = mkEllipticCurve 0 7 :: EllipticCurve F223
+                p1 = fromJust $ mkPointOnCurve curve 47 71
+                p2 = fromJust $ mkPointOnCurve curve 117 141
+                p3 = Point 60 139
             addPoint curve p1 p2 `H.shouldBe` p3
-            let Just x1 = mkff 143
-                Just y1 = mkff 98
-                Just x2 = mkff 76
-                Just y2 = mkff 66
-                Just x3 = mkff 47
-                Just y3 = mkff 71
-                Just p1 = mkPointOnCurve curve x1 y1
-                Just p2 = mkPointOnCurve curve x2 y2
-                Just p3 = mkPointOnCurve curve x3 y3
+        H.it "add points (143,98) + (76,66)" $ do
+            let curve = mkEllipticCurve 0 7 :: EllipticCurve F223
+                p1 = fromJust $ mkPointOnCurve curve 143 98
+                p2 = fromJust $ mkPointOnCurve curve 76 66
+                p3 = Point 47 71
             addPoint curve p1 p2 `H.shouldBe` p3
-            let Just x1 = mkff 170
-                Just y1 = mkff 142
-                Just x2 = mkff 60
-                Just y2 = mkff 139
-                Just p1 = mkPointOnCurve curve x1 y1
-                Just p2 = mkPointOnCurve curve x2 y2
-            print $ "(170,142) + (60,139) = " ++ show (addPoint curve p1 p2)
-            let Just x1 = mkff 47
-                Just y1 = mkff 71
-                Just x2 = mkff 17
-                Just y2 = mkff 56
-                Just p1 = mkPointOnCurve curve x1 y1
-                Just p2 = mkPointOnCurve curve x2 y2
-            print $ "(47,71) + (17,56) = " ++ show (addPoint curve p1 p2)
-            let Just x1 = mkff 143
-                Just y1 = mkff 98
-                Just x2 = mkff 76
-                Just y2 = mkff 66
-                Just p1 = mkPointOnCurve curve x1 y1
-                Just p2 = mkPointOnCurve curve x2 y2
-            print $ "(143,98) + (76,66) = " ++ show (addPoint curve p1 p2)
-
-
-    H.describe "--WIP case start" $ do
-        H.it "WIP case end--" $ do
-            print $ v
-                where v = "hello"
-
+        H.it "add same points (47,71) + (47,71)" $ do
+            let curve = mkEllipticCurve 0 7 :: EllipticCurve F223
+                p1 = fromJust $ mkPointOnCurve curve 47 71
+            addPoint curve p1 p1 `H.shouldBe` Point 36 111

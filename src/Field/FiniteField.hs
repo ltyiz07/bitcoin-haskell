@@ -1,51 +1,57 @@
+{-# LANGUAGE DataKinds #-}
+{-# LANGUAGE KindSignatures #-}
+{-# LANGUAGE TypeApplications #-}
+
 module Field.FiniteField
     ( FiniteField(..)
-    , mkFiniteField
     ) where
 
-import Field
+import GHC.TypeLits
+import Data.Proxy
+import Data.Ratio -- For fromRational
 
-data FiniteField = FiniteField
-    { value :: Integer
-    , prime :: Integer
-    } deriving (Show, Eq)
+newtype FiniteField (p :: Nat) = FiniteField Integer
+    deriving (Eq, Show)
 
-instance Field FiniteField where
-    add (FiniteField a p1) (FiniteField b p2)
-        | p1 /= p2 = Nothing
-        | otherwise = Just $ FiniteField ((a + b) `mod` p1) p1
+instance KnownNat p => Num (FiniteField p) where
+    (FiniteField a) + (FiniteField b) =
+        let p_val = natVal (Proxy @p)
+        in FiniteField ((a + b) `mod` p_val)
 
-    sub (FiniteField a p1) (FiniteField b p2)
-        | p1 /= p2 = Nothing
-        | otherwise = Just $ FiniteField ((a - b) `mod` p1) p1
+    (FiniteField a) - (FiniteField b) =
+        let p_val = natVal (Proxy @p)
+        in FiniteField ((a - b) `mod` p_val)
 
-    mult (FiniteField a p1) (FiniteField b p2)
-        | p1 /= p2 = Nothing
-        | otherwise = Just $ FiniteField ((a * b) `mod` p1) p1
+    (FiniteField a) * (FiniteField b) =
+        let p_val = natVal (Proxy @p)
+        in FiniteField ((a * b) `mod` p_val)
 
-    divide ff1 ff2 = do
-        invVal <- inv ff2
-        mult ff1 invVal
+    negate (FiniteField a) =
+        let p_val = natVal (Proxy @p)
+        in FiniteField (negate a `mod` p_val)
 
-    pow (FiniteField a p) n = FiniteField (modPow a n p) p
-        where
-            modPow :: Integer -> Integer -> Integer -> Integer
-            modPow base exp modulus
-                | exp < 0 = modPow (modInverse base modulus) (-exp) modulus
-                | exp == 0 = 1
-                | even exp = modPow ((base * base) `mod` modulus) (exp `div` 2) modulus
-                | otherwise = (base * modPow base (exp - 1) modulus) `mod` modulus
-    inv (FiniteField a p)
-        | a == 0 = Nothing
-        | otherwise = Just $ FiniteField (modInverse a p) p
+    abs = id -- In a finite field, abs typically doesn't apply in the usual sense. Identity is a safe default.
+    signum (FiniteField a) =
+        if a == 0 then FiniteField 0
+        else FiniteField 1 -- In a field, everything is either 0 or has a multiplicative inverse.
 
-    fromIntWith (FiniteField _ p) a = FiniteField (a `mod` p) p
-        
+    fromInteger n =
+        let p_val = natVal (Proxy @p)
+        in FiniteField (n `mod` p_val)
 
-mkFiniteField :: Integer -> Integer -> Maybe FiniteField
-mkFiniteField v p
-    | v < 0 || v >= p = Nothing
-    | otherwise       = Just $ FiniteField v p
+instance KnownNat p => Fractional (FiniteField p) where
+    recip (FiniteField a) =
+        let p_val = natVal (Proxy @p)
+        in if a == 0
+           then error "FiniteField: division by zero (reciprocal of 0)"
+           else FiniteField (modInverse a p_val)
+
+    fromRational r =
+        let p_val = natVal (Proxy @p)
+            n = numerator r
+            d = denominator r
+            d_inv = modInverse d p_val
+        in FiniteField ((n * d_inv) `mod` p_val)
 
 -- | 내부 헬퍼 함수: 모듈러 역원
 modInverse :: Integer -> Integer -> Integer

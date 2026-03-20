@@ -17,6 +17,18 @@
         - case: different x
 - [ ] Update pow method for FiniteField
 - [ ] Deprecate `mkPoint` use `mkPointOnCurve`
+     ✓ [Project Setup] Cabal 설정 파일 (`impl-btc.cabal`) 수정
+     ✓ [Project Setup] `src/Field.hs` 파일 삭제
+     ✓ [Refactor] `FiniteField` 모듈 리팩토링 (`src/Field/FiniteField.hs`)
+     ✓ [Refactor] `RealField`를 `RationalField`로 리팩토링 및 이름 변경 (`src/Field/RealField.hs` -> `src/Field/RationalField.hs`)
+     ✓ [Update] `EllipticCurve` 모듈 업데이트 (`src/EllipticCurve.hs`)
+     ✓ [Update] `RationalFieldSpec` 테스트 업데이트 및 파일 이름 변경 (`test/RealFieldSpec.hs` -> `test/RationalFieldSpec.hs`)
+     ✓ [Update] `FiniteFieldSpec` 테스트 업데이트 (`test/FiniteFieldSpec.hs`)
+     ✓ [Update] `EllipticCurveSpec` 테스트 업데이트 (`test/EllipticCurveSpec.hs`)
+     ✓ [Update] `test/Main.hs` 테스트 메인 파일 업데이트
+     ✓ [Finalize] `cabal build`로 최종 빌드 확인
+     ✓ [Finalize] `cabal test`로 최종 테스트 확인
+
 
 ## Refactoring Plan (from Gemini CLI)
 
@@ -55,3 +67,6 @@
 ### 6. 최종 빌드 및 테스트
 *   `cabal build` 명령으로 전체 프로젝트가 성공적으로 컴파일되는지 확인.
 *   `cabal test` 명령으로 모든 테스트가 통과하는지 확인.
+
+
+

@@ -18,9 +18,8 @@ common warnings
 
 library
     import:           warnings
-    exposed-modules:  Field
-                    , Field.FiniteField
-                    , Field.RealField
+    exposed-modules:  Field.FiniteField
+                    , Field.RationalField
                     , Utils.Prime
                     , EllipticCurve
     -- Modules included in this library but not exported.
@@ -28,6 +27,11 @@ library
     build-depends:    base ^>=4.20.2.0
     hs-source-dirs:   src
     default-language: GHC2024
+    default-extensions: DataKinds
+                      , KindSignatures
+                      , TypeApplications
+                      , GeneralizedNewtypeDeriving
+                      , ScopedTypeVariables
 
 executable impl-btc
     import:           warnings
@@ -46,7 +50,7 @@ test-suite impl-btc-test
     default-language: GHC2024
     other-modules:    PrimeSpec
                     , FiniteFieldSpec
-                    , RealFieldSpec
+                    , RationalFieldSpec
                     , EllipticCurveSpec
     -- LANGUAGE extensions used by modules in this package.
     -- other-extensions:
