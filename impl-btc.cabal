@@ -21,7 +21,9 @@ library
     exposed-modules:  Field.FiniteField
                     , Field.RationalField
                     , Utils.Prime
+                    , Utils.Arithmetic
                     , EllipticCurve
+                    , Secp256k1
     -- Modules included in this library but not exported.
     -- other-modules:
     build-depends:    base ^>=4.20.2.0
@@ -53,6 +55,8 @@ test-suite impl-btc-test
                     , FiniteFieldSpec
                     , RationalFieldSpec
                     , EllipticCurveSpec
+                    , Secp256k1Spec
+
     -- LANGUAGE extensions used by modules in this package.
     -- other-extensions:
     type:             exitcode-stdio-1.0

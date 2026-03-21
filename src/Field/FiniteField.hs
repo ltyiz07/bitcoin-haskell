@@ -9,8 +9,9 @@ module Field.FiniteField
 import GHC.TypeLits
 import Data.Proxy
 import Data.Ratio -- For fromRational
+import Utils.Arithmetic
 
-newtype FiniteField (p :: Nat) = FiniteField Integer
+newtype FiniteField (p :: Nat) = FiniteField { getValue :: Integer }
     deriving (Eq, Show)
 
 instance KnownNat p => Num (FiniteField p) where
@@ -44,24 +45,12 @@ instance KnownNat p => Fractional (FiniteField p) where
         let p_val = natVal (Proxy @p)
         in if a == 0
            then error "FiniteField: division by zero (reciprocal of 0)"
-           else FiniteField (modInverse a p_val)
+           else FiniteField (invMod a p_val)
 
     fromRational r =
         let p_val = natVal (Proxy @p)
             n = numerator r
             d = denominator r
-            d_inv = modInverse d p_val
+            d_inv = invMod d p_val
         in FiniteField ((n * d_inv) `mod` p_val)
 
--- | 내부 헬퍼 함수: 모듈러 역원
-modInverse :: Integer -> Integer -> Integer
-modInverse a m = let (_, x, _) = extendedGCD a m
-                 in x `mod` m
-
--- | 내부 헬퍼 함수: 확장 유클리드 호제법
-extendedGCD :: Integer -> Integer -> (Integer, Integer, Integer)
-extendedGCD a 0 = (a, 1, 0)
-extendedGCD a b = let (g, x1, y1) = extendedGCD b (a `mod` b)
-                      x = y1
-                      y = x1 - (a `Prelude.div` b) * y1
-                  in (g, x, y)
