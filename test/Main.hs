@@ -1,7 +1,9 @@
 module Main (main) where
 
 import Test.Hspec
-import qualified PrimeSpec
+import qualified Utils.PrimeSpec
+import qualified Utils.HashSpec
+import qualified Utils.DetermineKSpec
 import qualified FiniteFieldSpec
 import qualified RationalFieldSpec
 import qualified EllipticCurveSpec
@@ -9,7 +11,9 @@ import qualified Secp256k1Spec
 
 main :: IO ()
 main = hspec $ do
-    PrimeSpec.spec
+    Utils.PrimeSpec.spec
+    Utils.HashSpec.spec
+    Utils.DetermineKSpec.spec
     FiniteFieldSpec.spec
     RationalFieldSpec.spec
     EllipticCurveSpec.spec

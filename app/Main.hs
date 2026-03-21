@@ -1,8 +1,8 @@
 module Main (main) where
 
-import Utils.Prime
+import Secp256k1
 
 main :: IO ()
 main = do
   putStrLn "Hello, Haskell!"
-  putStrLn $ show (isPrime 5)
+  putStrLn $ show (n)

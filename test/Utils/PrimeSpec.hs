@@ -1,4 +1,4 @@
-module PrimeSpec (spec) where
+module Utils.PrimeSpec (spec) where
 
 import qualified Test.Hspec  as H
 import qualified Test.QuickCheck as QC

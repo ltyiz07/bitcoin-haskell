@@ -16,9 +16,11 @@
     - [x] x_1 != x_2
         - case: different x
 - [x] Update pow method for FiniteField
-- [ ] Deprecate `mkPoint` use `mkPointOnCurve`
+- [x] Deprecate `mkPoint` use `mkPointOnCurve`
 - [x] Refactor Fields and EllipticCurve classes
 - [ ] Create secp256k1 curve
+- [ ] Add hash methods
+- [ ] Implement determine-k method
 - [ ] Transaction bit parsing
     - [ ] Key serialization
         - [ ] SEC

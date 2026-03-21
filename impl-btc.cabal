@@ -18,15 +18,24 @@ common warnings
 
 library
     import:           warnings
-    exposed-modules:  Field.FiniteField
-                    , Field.RationalField
+    exposed-modules:  Secp256k1
+                    , EllipticCurve
                     , Utils.Prime
                     , Utils.Arithmetic
-                    , EllipticCurve
-                    , Secp256k1
-    -- Modules included in this library but not exported.
+                    , Utils.Hash
+                    , Utils.DetermineK
+                    , Field.RationalField
+                    , Field.FiniteField
+
     -- other-modules:
+
     build-depends:    base ^>=4.20.2.0
+                    , text ^>= 2.1.1
+                    , bytestring ^>= 0.11.4
+                    , crypton ^>= 1.0
+                    , base16-bytestring ^>= 1.0
+                    , memory ^>= 0.18
+
     hs-source-dirs:   src
     default-language: GHC2024
     default-extensions: DataKinds
@@ -51,7 +60,9 @@ executable impl-btc
 test-suite impl-btc-test
     import:           warnings
     default-language: GHC2024
-    other-modules:    PrimeSpec
+    other-modules:    Utils.PrimeSpec
+                    , Utils.HashSpec
+                    , Utils.DetermineKSpec
                     , FiniteFieldSpec
                     , RationalFieldSpec
                     , EllipticCurveSpec
