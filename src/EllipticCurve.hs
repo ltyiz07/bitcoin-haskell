@@ -1,3 +1,5 @@
+{-# LANGUAGE BangPatterns #-}
+
 module EllipticCurve
     ( Point(..)
     , EllipticCurve(..)
@@ -5,6 +7,8 @@ module EllipticCurve
     , mkPointOnCurve
     , isOnCurve
     , addPoint
+    , multiplyPoint
+    , negatePoint
     ) where
 
 import Data.Ratio () -- Needed for Integer literals to be interpreted as Rational for RationalField
@@ -30,7 +34,7 @@ mkPointOnCurve :: (Fractional f, Eq f) => EllipticCurve f -> f -> f -> Maybe (Po
 mkPointOnCurve curve x y
     | isOnCurve curve point = Just point
     | otherwise             = Nothing
-        where point = Point x y -- Direct construction now, assuming x, y are valid field elements
+  where point = Point x y -- Direct construction now, assuming x, y are valid field elements
 
 isOnCurve :: (Fractional f, Eq f) => EllipticCurve f -> Point f -> Bool
 isOnCurve _ Infinity = True
@@ -59,3 +63,21 @@ addPoint (EllipticCurve a _b) (Point x1 y1) (Point x2 y2)
             x3 = s^(2::Integer) - x1 - x2
             y3 = s * (x1 - x3) - y1
         in Point x3 y3
+
+multiplyPoint :: (Fractional f, Eq f) => EllipticCurve f -> Integer -> Point f -> Point f
+multiplyPoint curve k p
+    | k == 0 = Infinity
+    | k < 0 = multiplyPoint curve (-k) (negatePoint p)
+    | otherwise = go k p Infinity
+  where
+    go !n !cur !acc
+        | n == 0    = acc
+        | odd n     = go nextN nextCur (addPoint curve acc cur)
+        | otherwise = go nextN nextCur acc
+      where
+        nextCur = addPoint curve cur cur
+        nextN = quot n 2
+
+negatePoint :: (Num f) => Point f -> Point f
+negatePoint Infinity = Infinity
+negatePoint (Point x y) = Point x (negate y)

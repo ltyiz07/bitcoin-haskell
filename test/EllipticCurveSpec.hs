@@ -11,6 +11,8 @@ import EllipticCurve
 type F223 = FiniteField 223
 type F103 = FiniteField 103
 
+type FG = FiniteField 0xFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFEFFFFFC2F
+
 spec :: H.Spec
 spec = do
     H.describe "method: isOnCurve for RationalField" $ do
@@ -99,3 +101,21 @@ spec = do
             let curve = mkEllipticCurve 0 7 :: EllipticCurve F223
                 p1 = fromJust $ mkPointOnCurve curve 47 71
             addPoint curve p1 p1 `H.shouldBe` Point 36 111
+
+    H.describe "method multiplyPoint for FiniteField" $ do
+        H.it "compare result with addPoint method" $ do
+            let curve = mkEllipticCurve 0 7 :: EllipticCurve FG
+                p1 = fromJust $ mkPointOnCurve curve 0x79BE667EF9DCBBAC55A06295CE870B07029BFCDB2DCE28D959F2815B16F81798 0x483ADA7726A3C4655DA4FBFC0E1108A8FD17B448A68554199C47D08FFB10D4B8
+                addedPoint2 = addPoint curve p1 p1
+                addedPoint3 = addPoint curve addedPoint2 p1
+                addedPoint4 = addPoint curve addedPoint3 p1
+                addedPoint8 = addPoint curve addedPoint4 addedPoint4
+            multiplyPoint curve 2 p1 `H.shouldBe` addedPoint2
+            multiplyPoint curve 3 p1 `H.shouldBe` addedPoint3
+            multiplyPoint curve 4 p1 `H.shouldBe` addedPoint4
+            multiplyPoint curve 8 p1 `H.shouldBe` addedPoint8
+
+    H.describe "--WIP case start" $ do
+        H.it "WIP case end--" $ do
+            let target = "hello"
+            print $ target
