@@ -2,7 +2,7 @@ cabal-version:      3.0
 
 name:               impl-btc
 
-version:            0.1.0.0
+version:            0.1.2
 
 synopsis: Implementation for practice of Programming Bitcoin book
 license:            BSD-3-Clause
