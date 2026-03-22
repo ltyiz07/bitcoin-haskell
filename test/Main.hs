@@ -7,7 +7,7 @@ import qualified Utils.DetermineKSpec
 import qualified FiniteFieldSpec
 import qualified RationalFieldSpec
 import qualified EllipticCurveSpec
-import qualified Secp256k1Spec
+import qualified SignatureSpec
 
 main :: IO ()
 main = hspec $ do
@@ -17,4 +17,4 @@ main = hspec $ do
     FiniteFieldSpec.spec
     RationalFieldSpec.spec
     EllipticCurveSpec.spec
-    Secp256k1Spec.spec
+    SignatureSpec.spec

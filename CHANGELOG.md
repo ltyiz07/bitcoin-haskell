@@ -8,6 +8,22 @@
 
 ### Fixed
 
+## [0.1.4] -- 2026-03-22
+
+### Added
+
+- Add hash methods
+  - HASH-256
+  - HASH-160
+- Add hmac method
+  - HMAC SHA-1
+
+## [0.1.3] -- 2026-03-21
+
+### Added
+
+- Add scalar multiply point method
+
 ## [0.1.2] -- 2026-03-20
 
 ### Changed

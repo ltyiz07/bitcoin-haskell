@@ -2,21 +2,14 @@ module Utils.DetermineKSpec (spec) where
 
 import qualified Test.Hspec  as H
 
-import Secp256k1
-import GHC.TypeLits (KnownNat, natVal)
-import Data.Proxy (Proxy(..))
-import Field.FiniteField
+import Utils.DetermineK
 
 spec :: H.Spec
 spec = do
-    H.describe "KnownNat natVal method test" $ do
-        H.it "get value p from FiniteField" $ do
-            let px :: FG = 0x887387e452b8eacc4acfde10d9aaf7f6d9a0f975aabb10d006e4da568744d06c
-                getP :: forall p. KnownNat p => FiniteField p -> Integer
-                getP _ = natVal @p Proxy
-            print $ getP px
-            print $ getValue px
-
     H.describe "DetermineK method test" $ do
         H.it "deterministic k from private-key and hash" $ do
-            True `H.shouldBe` True
+            let e = 0x2bb80d537b1da3e38bd30361aa855686bde0eacd7162fef6a25fe97bf527a25b
+                z = 0xe96cf59c385c8903c6c795d3ce27a49730df2ce0133c830271abac6b5352beb6
+                result = determineK e z
+                expected = 0x2580e99c46234781424f08b8f6e9b3d4616c27fd3e3cc559bdb52b85dc2bacb5
+            result `H.shouldBe` expected

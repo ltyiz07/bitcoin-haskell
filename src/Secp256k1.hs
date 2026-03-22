@@ -4,9 +4,10 @@
 {-# LANGUAGE OverloadedStrings #-}
 
 module Secp256k1
-    ( Signature(..)
-    , FG
-    , verify
+    ( FG
+    , secp256k1
+    , secp256k1Order
+    , gPoint
     ) where
 
 import EllipticCurve
@@ -30,33 +31,4 @@ gPoint = Point
     { x = 0x79BE667EF9DCBBAC55A06295CE870B07029BFCDB2DCE28D959F2815B16F81798
     , y = 0x483ADA7726A3C4655DA4FBFC0E1108A8FD17B448A68554199C47D08FFB10D4B8
     }
-
-data Signature = Signature
-    { r :: Integer
-    , s :: Integer
-    } deriving (Show, Eq)
-
-{-
- - # to verivy
- -   - P: Public key (or Public point)
- -   - z: Message hash (of Hash-256)
- -   - r: x value of Random point (R === kG)
- -   - s: Signature
- -}
-
-verify :: Integer -> Point FG -> Signature -> Bool
-verify z publicPoint (Signature r s)
-    | r <= 0 || r >= secp256k1Order = False
-    | s <= 0 || s >= secp256k1Order = False
-    | otherwise = 
-        let invS = invMod s secp256k1Order
-            u = (z * invS) `mod` secp256k1Order
-            v = (r * invS) `mod` secp256k1Order
-            uG = multiplyPoint secp256k1 u gPoint
-            vP = multiplyPoint secp256k1 v publicPoint
-            addedPoint = addPoint secp256k1 uG vP
-        in case addedPoint of
-            Infinity -> False
-            Point rx _ -> getValue rx == r
-
 

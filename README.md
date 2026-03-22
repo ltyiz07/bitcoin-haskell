@@ -20,7 +20,7 @@
 - [x] Refactor Fields and EllipticCurve classes
 - [x] Create secp256k1 curve
 - [x] Add hash methods
-- [ ] Implement determine-k method
+- [x] Implement determine-k method
 - [ ] Transaction bit parsing
     - [ ] Key serialization
         - [ ] SEC

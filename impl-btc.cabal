@@ -2,7 +2,7 @@ cabal-version:      3.0
 
 name:               impl-btc
 
-version:            0.1.3
+version:            0.1.4
 
 synopsis: Implementation for practice of Programming Bitcoin book
 license:            BSD-3-Clause
@@ -18,7 +18,7 @@ common warnings
 
 library
     import:           warnings
-    exposed-modules:  Secp256k1
+    exposed-modules: Signature
                     , EllipticCurve
                     , Utils.Prime
                     , Utils.Arithmetic
@@ -26,8 +26,9 @@ library
                     , Utils.DetermineK
                     , Field.RationalField
                     , Field.FiniteField
+                    , Secp256k1
 
-    -- other-modules:
+    -- other-modules:    Secp256k1
 
     build-depends:    base ^>=4.20.2.0
                     , text ^>= 2.1.1
@@ -66,7 +67,7 @@ test-suite impl-btc-test
                     , FiniteFieldSpec
                     , RationalFieldSpec
                     , EllipticCurveSpec
-                    , Secp256k1Spec
+                    , SignatureSpec
 
     -- LANGUAGE extensions used by modules in this package.
     -- other-extensions:

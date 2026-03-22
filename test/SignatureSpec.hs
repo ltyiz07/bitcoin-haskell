@@ -1,7 +1,8 @@
-module Secp256k1Spec (spec) where
+module SignatureSpec (spec) where
 
 import qualified Test.Hspec as H
 import EllipticCurve
+import Signature
 import Secp256k1
 
 spec :: H.Spec
