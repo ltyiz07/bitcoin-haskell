@@ -18,7 +18,7 @@
 - [x] Update pow method for FiniteField
 - [x] Deprecate `mkPoint` use `mkPointOnCurve`
 - [x] Refactor Fields and EllipticCurve classes
-- [ ] Create secp256k1 curve
+- [x] Create secp256k1 curve
 - [x] Add hash methods
 - [ ] Implement determine-k method
 - [ ] Transaction bit parsing
