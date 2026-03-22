@@ -1,6 +1,8 @@
 module Utils.Hash
     ( hash256
     , hash160
+    , textToByteString
+    , byteStringToHexText
     ) where
 
 import Crypto.Hash (hash, SHA256, RIPEMD160, Digest)
@@ -10,20 +12,25 @@ import qualified Data.ByteString as B
 import qualified Data.ByteString.Base16 as B16
 import qualified Data.ByteArray as BA
 
-toByteString :: String -> B.ByteString
-toByteString s = E.encodeUtf8 (T.pack s)
+-- Hash methods
 
-toString :: B.ByteString -> String
-toString bs = T.unpack (E.decodeUtf8 bs)
+sha256 :: B.ByteString -> Digest SHA256
+sha256 = hash
 
-toHexString :: B.ByteString -> String
-toHexString bs = T.unpack (E.decodeUtf8 (B16.encode bs))
+ripemd160 :: B.ByteString -> Digest RIPEMD160
+ripemd160 = hash
 
-hash256 :: String -> String
-hash256 bs =
-    let first = hash (toByteString bs) :: Digest SHA256
-        second = hash (BA.convert first :: B.ByteString) :: Digest SHA256
-    in toHexString (BA.convert second)
+hash256 :: B.ByteString -> B.ByteString
+hash256 = BA.convert . sha256 . BA.convert . sha256
 
-hash160 :: Integer -> Integer
-hash160 = undefined
+hash160 :: B.ByteString -> B.ByteString
+hash160 = BA.convert . ripemd160 . BA.convert . sha256
+
+-- Converters
+
+textToByteString :: T.Text -> B.ByteString
+textToByteString = E.encodeUtf8
+
+byteStringToHexText :: B.ByteString -> T.Text
+byteStringToHexText = E.decodeUtf8 . B16.encode
+

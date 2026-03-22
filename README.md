@@ -19,7 +19,7 @@
 - [x] Deprecate `mkPoint` use `mkPointOnCurve`
 - [x] Refactor Fields and EllipticCurve classes
 - [ ] Create secp256k1 curve
-- [ ] Add hash methods
+- [x] Add hash methods
 - [ ] Implement determine-k method
 - [ ] Transaction bit parsing
     - [ ] Key serialization

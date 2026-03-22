@@ -77,4 +77,5 @@ test-suite impl-btc-test
                     , impl-btc
                     , hspec ^>=2.11
                     , QuickCheck ^>=2.14
+                    , text ^>= 2.1.1
 

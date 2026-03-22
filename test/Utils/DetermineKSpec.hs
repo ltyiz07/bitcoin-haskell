@@ -1,3 +1,5 @@
+{-# LANGUAGE OverloadedStrings #-}
+
 module Utils.DetermineKSpec (spec) where
 
 import qualified Test.Hspec  as H
