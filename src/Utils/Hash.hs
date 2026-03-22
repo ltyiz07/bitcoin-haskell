@@ -1,11 +1,14 @@
 module Utils.Hash
     ( hash256
     , hash160
+    , hmac256
     , textToByteString
     , byteStringToHexText
     ) where
 
 import Crypto.Hash (hash, SHA256, RIPEMD160, Digest)
+import Crypto.MAC.HMAC (hmac, HMAC)
+
 import qualified Data.Text as T
 import qualified Data.Text.Encoding as E
 import qualified Data.ByteString as B
@@ -25,6 +28,9 @@ hash256 = BA.convert . sha256 . BA.convert . sha256
 
 hash160 :: B.ByteString -> B.ByteString
 hash160 = BA.convert . ripemd160 . BA.convert . sha256
+
+hmac256 :: B.ByteString -> B.ByteString -> B.ByteString
+hmac256 key msg = BA.convert (hmac key msg :: HMAC SHA256)
 
 -- Converters
 
