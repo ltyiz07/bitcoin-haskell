@@ -1,4 +1,4 @@
-module Utils.PrimeSpec (spec) where
+module ECDSA.Utils.PrimeSpec (spec) where
 
 import qualified Test.Hspec  as H
 import qualified Test.QuickCheck as QC

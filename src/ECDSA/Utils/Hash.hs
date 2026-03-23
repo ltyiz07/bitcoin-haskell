@@ -8,12 +8,12 @@ module ECDSA.Utils.Hash
 
 import Crypto.Hash (hash, SHA256, RIPEMD160, Digest)
 import Crypto.MAC.HMAC (hmac, HMAC)
-
 import qualified Data.Text as T
 import qualified Data.Text.Encoding as E
 import qualified Data.ByteString as B
 import qualified Data.ByteString.Base16 as B16
 import qualified Data.ByteArray as BA
+
 
 -- Hash methods
 

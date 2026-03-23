@@ -1,5 +1,6 @@
 # Revision history for impl-btc
 
+```
 ## [VERSION] -- YYYY-mm-dd
 
 ### Added
@@ -7,6 +8,13 @@
 ### Changed
 
 ### Fixed
+```
+
+## [0.1.6] -- 2026-03-23
+
+### Changed
+
+- Change file structure and file names
 
 ## [0.1.5] -- 2026-03-23
 

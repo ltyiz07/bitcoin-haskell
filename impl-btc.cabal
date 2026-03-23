@@ -2,7 +2,7 @@ cabal-version:      3.0
 
 name:               impl-btc
 
-version:            0.1.5
+version:            0.1.6
 
 synopsis: Implementation for practice of Programming Bitcoin book
 license:            BSD-3-Clause
@@ -26,7 +26,6 @@ library
                     , ECDSA.Utils.Prime
                     , ECDSA.Utils.Arithmetic
                     , ECDSA.Utils.Hash
-                    , ECDSA.Utils.DetermineK
 
     -- other-modules:    Secp256k1
 
@@ -61,13 +60,12 @@ executable impl-btc
 test-suite impl-btc-test
     import:           warnings
     default-language: GHC2024
-    other-modules:    Utils.PrimeSpec
-                    , Utils.HashSpec
-                    , Utils.DetermineKSpec
-                    , FiniteFieldSpec
-                    , RationalFieldSpec
-                    , EllipticCurveSpec
-                    , SignatureSpec
+    other-modules:    ECDSA.Utils.PrimeSpec
+                    , ECDSA.Utils.HashSpec
+                    , ECDSA.Field.FiniteFieldSpec
+                    , ECDSA.Field.RationalFieldSpec
+                    , ECDSA.Curve.EllipticCurveSpec
+                    , ECDSA.SignatureSpec
 
     -- LANGUAGE extensions used by modules in this package.
     -- other-extensions:

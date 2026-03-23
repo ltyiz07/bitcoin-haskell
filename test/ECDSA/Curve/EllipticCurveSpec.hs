@@ -1,4 +1,4 @@
-module EllipticCurveSpec (spec) where
+module ECDSA.Curve.EllipticCurveSpec (spec) where
 
 import qualified Test.Hspec as H
 import Data.Maybe (fromJust)
@@ -115,7 +115,3 @@ spec = do
             multiplyPoint curve 4 p1 `H.shouldBe` addedPoint4
             multiplyPoint curve 8 p1 `H.shouldBe` addedPoint8
 
-    H.describe "--WIP case start" $ do
-        H.it "WIP case end--" $ do
-            let target = "hello"
-            print $ target

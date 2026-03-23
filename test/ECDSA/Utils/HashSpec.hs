@@ -1,6 +1,6 @@
 {-# LANGUAGE OverloadedStrings #-}
 
-module Utils.HashSpec (spec) where
+module ECDSA.Utils.HashSpec (spec) where
 
 import qualified Test.Hspec  as H
 import qualified Data.Text as T

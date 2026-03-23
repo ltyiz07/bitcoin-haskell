@@ -1,4 +1,4 @@
-module RationalFieldSpec (spec) where
+module ECDSA.Field.RationalFieldSpec (spec) where
 
 import qualified Test.Hspec as H
 import Control.Exception (evaluate)

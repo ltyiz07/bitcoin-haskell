@@ -2,6 +2,7 @@ module ECDSA.Utils.Prime
     ( isPrime
     ) where
 
+
 isPrime :: Integer -> Bool
 isPrime n
     | n < 2     = False

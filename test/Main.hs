@@ -1,20 +1,20 @@
 module Main (main) where
 
 import Test.Hspec
-import qualified Utils.PrimeSpec
-import qualified Utils.HashSpec
-import qualified Utils.DetermineKSpec
-import qualified FiniteFieldSpec
-import qualified RationalFieldSpec
-import qualified EllipticCurveSpec
-import qualified SignatureSpec
+
+import qualified ECDSA.Utils.PrimeSpec
+import qualified ECDSA.Utils.HashSpec
+import qualified ECDSA.Field.FiniteFieldSpec
+import qualified ECDSA.Field.RationalFieldSpec
+import qualified ECDSA.Curve.EllipticCurveSpec
+import qualified ECDSA.SignatureSpec
+
 
 main :: IO ()
 main = hspec $ do
-    Utils.PrimeSpec.spec
-    Utils.HashSpec.spec
-    Utils.DetermineKSpec.spec
-    FiniteFieldSpec.spec
-    RationalFieldSpec.spec
-    EllipticCurveSpec.spec
-    SignatureSpec.spec
+    ECDSA.Utils.PrimeSpec.spec
+    ECDSA.Utils.HashSpec.spec
+    ECDSA.Field.FiniteFieldSpec.spec
+    ECDSA.Field.RationalFieldSpec.spec
+    ECDSA.Curve.EllipticCurveSpec.spec
+    ECDSA.SignatureSpec.spec

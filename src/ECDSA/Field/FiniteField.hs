@@ -9,7 +9,9 @@ module ECDSA.Field.FiniteField
 import GHC.TypeLits
 import Data.Proxy
 import Data.Ratio -- For fromRational
+
 import ECDSA.Utils.Arithmetic
+
 
 newtype FiniteField (p :: Nat) = FiniteField { getValue :: Integer }
     deriving (Eq, Show)

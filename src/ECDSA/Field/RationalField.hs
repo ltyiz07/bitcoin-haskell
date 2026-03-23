@@ -7,6 +7,7 @@ module ECDSA.Field.RationalField
 
 import Data.Ratio ()
 
+
 -- | 유리수체 원소 타입
 newtype RationalField = RationalField
     { getValue :: Rational

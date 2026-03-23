@@ -1,4 +1,4 @@
-module FiniteFieldSpec (spec) where
+module ECDSA.Field.FiniteFieldSpec (spec) where
 
 import qualified Test.Hspec as H
 import Control.Exception (evaluate)

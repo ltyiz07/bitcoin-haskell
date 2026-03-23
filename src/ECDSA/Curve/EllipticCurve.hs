@@ -13,6 +13,7 @@ module ECDSA.Curve.EllipticCurve
 
 import Data.Ratio () -- Needed for Integer literals to be interpreted as Rational for RationalField
 
+
 data Point f
     = Point
         { x :: f

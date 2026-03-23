@@ -6,6 +6,7 @@ module ECDSA.Utils.Arithmetic
     , powMod
     ) where
 
+
 -- | 확장 유클리드 알고리즘: ax + by = gcd(a, b)를 만족하는 (g, x, y) 반환
 gcdExt :: Integer -> Integer -> (Integer, Integer, Integer)
 gcdExt 0 b = (b, 0, 1)
@@ -31,6 +32,6 @@ powMod b e m
     | otherwise = go (b `mod` m) e 1
   where
     go _ 0 !acc = acc
-    go base exp !acc
-        | odd exp   = go (base * base `mod` m) (exp `quot` 2) (acc * base `mod` m)
-        | otherwise = go (base * base `mod` m) (exp `quot` 2) acc
+    go base expo !acc
+        | odd expo   = go (base * base `mod` m) (expo `quot` 2) (acc * base `mod` m)
+        | otherwise = go (base * base `mod` m) (expo `quot` 2) acc
