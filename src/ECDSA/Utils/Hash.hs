@@ -1,4 +1,4 @@
-module Utils.Hash
+module ECDSA.Utils.Hash
     ( hash256
     , hash160
     , hmac256

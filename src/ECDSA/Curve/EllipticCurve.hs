@@ -1,6 +1,6 @@
 {-# LANGUAGE BangPatterns #-}
 
-module EllipticCurve
+module ECDSA.Curve.EllipticCurve
     ( Point(..)
     , EllipticCurve(..)
     , mkEllipticCurve

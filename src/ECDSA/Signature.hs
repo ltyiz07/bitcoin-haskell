@@ -1,15 +1,15 @@
-module Signature
+module ECDSA.Signature
     ( Signature(..)
     , verify
     , derivePublicPoint
     , sign
     ) where
 
-import Secp256k1
-import EllipticCurve
-import Utils.Arithmetic
-import Field.FiniteField
-import Utils.DetermineK
+import ECDSA.Curve.Secp256k1
+import ECDSA.Curve.EllipticCurve
+import ECDSA.Utils.Arithmetic
+import ECDSA.Field.FiniteField
+import ECDSA.Utils.DetermineK
 
 data Signature = Signature
     { r :: Integer

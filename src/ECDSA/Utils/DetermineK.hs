@@ -1,11 +1,11 @@
-module Utils.DetermineK 
+module ECDSA.Utils.DetermineK 
     ( determineK
     ) where
 
-import Utils.Hash
+import ECDSA.Utils.Hash
 import qualified Data.ByteString as B
 import Data.Bits (shiftR)
-import Secp256k1
+import ECDSA.Curve.Secp256k1
 
 intToBytes32 :: Integer -> B.ByteString
 intToBytes32 n = B.pack $ pad $ toBytes n

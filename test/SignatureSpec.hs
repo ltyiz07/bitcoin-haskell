@@ -3,12 +3,12 @@
 module SignatureSpec (spec) where
 
 import qualified Test.Hspec as H
-import EllipticCurve
-import Signature
-import Secp256k1
-import Utils.DetermineK
-import Utils.Arithmetic
-import Field.FiniteField
+import ECDSA.Curve.EllipticCurve
+import ECDSA.Signature
+import ECDSA.Curve.Secp256k1
+import ECDSA.Utils.DetermineK
+import ECDSA.Utils.Arithmetic
+import ECDSA.Field.FiniteField
 -- import qualified Data.Text as T
 -- import Utils.Hash
 

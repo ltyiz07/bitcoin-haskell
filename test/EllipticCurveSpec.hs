@@ -3,9 +3,9 @@ module EllipticCurveSpec (spec) where
 import qualified Test.Hspec as H
 import Data.Maybe (fromJust)
 
-import Field.FiniteField
-import Field.RationalField
-import EllipticCurve
+import ECDSA.Field.FiniteField
+import ECDSA.Field.RationalField
+import ECDSA.Curve.EllipticCurve
 
 -- For cleaner test code with type-safe FiniteFields
 type F223 = FiniteField 223

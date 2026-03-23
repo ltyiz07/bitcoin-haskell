@@ -18,15 +18,15 @@ common warnings
 
 library
     import:           warnings
-    exposed-modules: Signature
-                    , EllipticCurve
-                    , Utils.Prime
-                    , Utils.Arithmetic
-                    , Utils.Hash
-                    , Utils.DetermineK
-                    , Field.RationalField
-                    , Field.FiniteField
-                    , Secp256k1
+    exposed-modules:  ECDSA.Signature
+                    , ECDSA.Field.RationalField
+                    , ECDSA.Field.FiniteField
+                    , ECDSA.Curve.EllipticCurve
+                    , ECDSA.Curve.Secp256k1
+                    , ECDSA.Utils.Prime
+                    , ECDSA.Utils.Arithmetic
+                    , ECDSA.Utils.Hash
+                    , ECDSA.Utils.DetermineK
 
     -- other-modules:    Secp256k1
 

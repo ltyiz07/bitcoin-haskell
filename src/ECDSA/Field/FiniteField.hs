@@ -2,14 +2,14 @@
 {-# LANGUAGE KindSignatures #-}
 {-# LANGUAGE TypeApplications #-}
 
-module Field.FiniteField
+module ECDSA.Field.FiniteField
     ( FiniteField(..)
     ) where
 
 import GHC.TypeLits
 import Data.Proxy
 import Data.Ratio -- For fromRational
-import Utils.Arithmetic
+import ECDSA.Utils.Arithmetic
 
 newtype FiniteField (p :: Nat) = FiniteField { getValue :: Integer }
     deriving (Eq, Show)

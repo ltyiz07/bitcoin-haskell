@@ -1,6 +1,6 @@
 {-# LANGUAGE BangPatterns #-}
 
-module Utils.Arithmetic
+module ECDSA.Utils.Arithmetic
     ( gcdExt
     , invMod
     , powMod

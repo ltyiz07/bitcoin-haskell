@@ -1,6 +1,6 @@
 {-# LANGUAGE GeneralizedNewtypeDeriving #-}
 
-module Field.RationalField
+module ECDSA.Field.RationalField
     ( RationalField(..)
     , mkRationalField
     ) where

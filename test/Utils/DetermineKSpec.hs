@@ -2,7 +2,7 @@ module Utils.DetermineKSpec (spec) where
 
 import qualified Test.Hspec  as H
 
-import Utils.DetermineK
+import ECDSA.Utils.DetermineK
 
 spec :: H.Spec
 spec = do

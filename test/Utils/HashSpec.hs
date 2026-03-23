@@ -4,7 +4,7 @@ module Utils.HashSpec (spec) where
 
 import qualified Test.Hspec  as H
 import qualified Data.Text as T
-import Utils.Hash
+import ECDSA.Utils.Hash
 
 spec :: H.Spec
 spec = do
