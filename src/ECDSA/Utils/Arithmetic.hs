@@ -1,11 +1,28 @@
 {-# LANGUAGE BangPatterns #-}
 
 module ECDSA.Utils.Arithmetic
-    ( gcdExt
+    ( intToBytes32
+    , bytesToInteger
+    , gcdExt
     , invMod
     , powMod
     ) where
 
+import qualified Data.ByteString as B
+import Data.Bits (shiftR)
+
+
+-- Integer -> 빅엔디안 32 ByteString
+intToBytes32 :: Integer -> B.ByteString
+intToBytes32 n = B.pack $ pad $ toBytes n
+  where
+    toBytes 0 = []
+    toBytes x = fromIntegral (x `mod` 256) : toBytes (x `shiftR` 8)
+    pad bs    = replicate (32 - length bs) 0 ++ reverse bs
+
+-- 빅엔디안 ByteString -> Integer
+bytesToInteger :: B.ByteString -> Integer
+bytesToInteger = B.foldl' (\acc b -> acc * 256 + fromIntegral b) 0
 
 -- | 확장 유클리드 알고리즘: ax + by = gcd(a, b)를 만족하는 (g, x, y) 반환
 gcdExt :: Integer -> Integer -> (Integer, Integer, Integer)

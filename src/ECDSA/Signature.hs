@@ -4,12 +4,9 @@ module ECDSA.Signature
     , sign
     , derivePublicPoint
     , determineK
-    , intToBytes32
-    , bytesToInteger
     ) where
 
 import qualified Data.ByteString as B
-import Data.Bits (shiftR)
 
 import ECDSA.Curve.Secp256k1
 import ECDSA.Curve.EllipticCurve
@@ -85,15 +82,4 @@ determineK e z = go k2 v2
                let k' = hmac256 k (v' <> B.singleton 0x00)
                    v''= hmac256 k' v'
                in go k' v''
-
-intToBytes32 :: Integer -> B.ByteString
-intToBytes32 n = B.pack $ pad $ toBytes n
-  where
-    toBytes 0 = []
-    toBytes x = fromIntegral (x `mod` 256) : toBytes (x `shiftR` 8)
-    pad bs    = replicate (32 - length bs) 0 ++ reverse bs
-
--- 빅엔디안 ByteString -> Integer
-bytesToInteger :: B.ByteString -> Integer
-bytesToInteger = B.foldl' (\acc b -> acc * 256 + fromIntegral b) 0
 
