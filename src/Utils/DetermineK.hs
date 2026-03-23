@@ -2,13 +2,10 @@ module Utils.DetermineK
     ( determineK
     ) where
 
-import GHC.TypeLits (KnownNat, natVal)
-import Data.Proxy (Proxy(..))
 import Utils.Hash
 import qualified Data.ByteString as B
 import Data.Bits (shiftR)
 import Secp256k1
-import Numeric (showHex)
 
 intToBytes32 :: Integer -> B.ByteString
 intToBytes32 n = B.pack $ pad $ toBytes n
@@ -17,14 +14,10 @@ intToBytes32 n = B.pack $ pad $ toBytes n
     toBytes x = fromIntegral (x `mod` 256) : toBytes (x `shiftR` 8)
     pad bs    = replicate (32 - length bs) 0 ++ reverse bs
 
--- RFC 6979: 결정론적 k 생성
-n :: Integer
-n = secp256k1Order
-
 determineK :: Integer -> Integer -> Integer
 determineK e z = go k2 v2
   where
-    z' = z `mod` n
+    z' = z `mod` secp256k1Order
     bz  = intToBytes32 z'
     be = intToBytes32 e
 
@@ -42,7 +35,7 @@ determineK e z = go k2 v2
     go k v =
         let v'        = hmac256 k v
             candidate = bytesToInteger v'
-        in if candidate >= 1 && candidate < n
+        in if candidate >= 1 && candidate < secp256k1Order
            then candidate
            else
                -- 범위 밖이면 K, V 갱신 후 재시도

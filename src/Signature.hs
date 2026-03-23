@@ -1,12 +1,15 @@
 module Signature
     ( Signature(..)
     , verify
+    , derivePublicPoint
+    , sign
     ) where
 
 import Secp256k1
 import EllipticCurve
 import Utils.Arithmetic
 import Field.FiniteField
+import Utils.DetermineK
 
 data Signature = Signature
     { r :: Integer
@@ -21,8 +24,8 @@ data Signature = Signature
  -   - s: Signature
  -}
 
-verify :: Integer -> Point FG -> Signature -> Bool
-verify z publicPoint (Signature r s)
+verify :: Point FG -> Signature -> Integer -> Bool
+verify publicPoint (Signature r s) z
     | r <= 0 || r >= secp256k1Order = False
     | s <= 0 || s >= secp256k1Order = False
     | otherwise = 
@@ -36,3 +39,13 @@ verify z publicPoint (Signature r s)
             Infinity -> False
             Point rx _ -> getValue rx == r
 
+derivePublicPoint :: Integer -> Point FG
+derivePublicPoint e = multiplyPoint secp256k1 e gPoint
+
+sign :: Integer -> Integer -> Signature
+sign e z = Signature (modN r) (modN s)
+  where
+    modN = flip mod secp256k1Order
+    k = determineK e z
+    r = getValue $ x (multiplyPoint secp256k1 k gPoint)
+    s = (z + r * e) * (invMod k secp256k1Order)
