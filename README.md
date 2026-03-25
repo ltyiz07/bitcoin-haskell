@@ -2,6 +2,8 @@
 
 ## TODOs
 
+### ECDSA
+
 - [x] EllipticCurve add method
     - [x] add with point at infinity
         - case: 'point at infinity' is 'identity element'
@@ -21,6 +23,9 @@
 - [x] Create secp256k1 curve
 - [x] Add hash methods
 - [x] Implement determine-k method
+
+### Bitcoin
+
 - [ ] Transaction bit parsing
     - [ ] Key serialization
         - [ ] SEC
