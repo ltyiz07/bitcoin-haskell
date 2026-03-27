@@ -8,6 +8,7 @@ import qualified ECDSA.Field.FiniteFieldSpec
 import qualified ECDSA.Field.RationalFieldSpec
 import qualified ECDSA.Curve.EllipticCurveSpec
 import qualified ECDSA.SignatureSpec
+import qualified Bitcoin.Keys.SECSpec
 
 
 main :: IO ()
@@ -18,3 +19,4 @@ main = hspec $ do
     ECDSA.Field.RationalFieldSpec.spec
     ECDSA.Curve.EllipticCurveSpec.spec
     ECDSA.SignatureSpec.spec
+    Bitcoin.Keys.SECSpec.spec

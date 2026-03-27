@@ -24,17 +24,48 @@
 - [x] Add hash methods
 - [x] Implement determine-k method
 
-### Bitcoin
+### Bitcoin Protocol
 
-- [ ] Transaction bit parsing
-    - [ ] Key serialization
-        - [ ] SEC
-        - [ ] DER
-        - [ ] WIF
-    - [ ] Transaction serialization
-    - [ ] Script parsing
-- [ ] Block
-- [ ] Networking
+- [ ] Setup & Utilities
+  - [ ] Add `cereal`, `base58-bytestring` to `.cabal` (add `network` later)
+  - [ ] Create `src/Bitcoin` directory structure (including `src/Bitcoin/Utils/` directory)
+  - [ ] Implement modular square root function in `src/ECDSA/Field/FiniteField.hs`
+  - [ ] Implement `src/Bitcoin/Utils/VarInt.hs` for `VarInt` serialization/deserialization
+  - [ ] Implement other utility files in `src/Bitcoin/Utils/` as needed (e.g., for endianness, specific byte manipulations)
+   
+- [ ] Key Serialization
+  - [x] SEC Format
+    - [x] Implement SEC encoding (compressed & uncompressed)
+    - [x] Implement SEC decoding
+  - [ ] WIF Format
+    - [ ] Implement Base58Check encoding
+    - [ ] Implement WIF encoding/decoding
+  - [ ] DER Format
+    - [ ] Implement DER encoding for signatures
+
+- [ ] Transaction Serialization
+  - [ ] Define data types (`Transaction`, `TxIn`, `TxOut`, `Script`)
+  - [ ] Implement `Binary` instance for `Script` (using `VarInt`)
+  - [ ] Implement `Binary` instances for `TxOut`, `TxIn`, etc.
+  - [ ] Implement `Binary` instance for `Transaction`
+    - [ ] Support legacy transaction format
+    - [ ] Support SegWit transaction format (marker & witness data)
+
+- [ ] Block Serialization
+  - [ ] Define data types (`BlockHeader`, `Block`)
+  - [ ] Implement Merkle Root calculation
+  - [ ] Implement `Binary` instance for `BlockHeader`
+  - [ ] Implement `Binary` instance for `Block`
+
+- [ ] Networking (P2P)
+  - [ ] Define network message data types (`MessageHeader`, etc.)
+  - [ ] Implement `Binary` instance for `MessageHeader`
+  - [ ] Implement handshake logic (`version`, `verack`)
+  - [ ] Implement data exchange logic (`inv`, `getdata`, `tx`, `block`)
+
+- [ ] Advanced Features
+  - [ ] Implement full Script evaluation engine
+  - [ ] Support Taproot (Schnorr signatures, P2TR outputs)
 
 
 ## How to test code
