@@ -4,18 +4,11 @@ module Bitcoin.Keys.SECSpec (spec) where
 
 import qualified Test.Hspec as H
 
-import qualified Data.ByteString as B
-import qualified Data.ByteString.Base16 as B16
-
 import ECDSA.Curve.EllipticCurve
 import ECDSA.Curve.Secp256k1
 import Bitcoin.Keys.SEC
+import Bitcoin.Utils.Hex
 
-
-hexToBytes :: B.ByteString -> B.ByteString
-hexToBytes bs = case B16.decode bs of
-    Left err -> error ("Hex decoding failed: " ++ err)
-    Right val -> val
 
 spec :: H.Spec
 spec = do
@@ -33,19 +26,19 @@ spec = do
             compressedSECKey2   = hexToBytes "03887387e452b8eacc4acfde10d9aaf7f6d9a0f975aabb10d006e4da568744d06c"
 
         H.it "Encode SEC Uncompressed format case 1" $ do
-            let result :: B.ByteString = encodeSEC Uncompressed publicPoint1
+            let result = encodeSEC Uncompressed publicPoint1
             result `H.shouldBe` uncompressedSECKey1
 
         H.it "Encode SEC Uncompressed format case 2" $ do
-            let result :: B.ByteString = encodeSEC Uncompressed publicPoint2
+            let result = encodeSEC Uncompressed publicPoint2
             result `H.shouldBe` uncompressedSECKey2
 
         H.it "Encode SEC Compressed format case 1" $ do
-            let result :: B.ByteString = encodeSEC Compressed publicPoint1
+            let result = encodeSEC Compressed publicPoint1
             result `H.shouldBe` compressedSECKey1
 
         H.it "Encode SEC Compressed format case 2" $ do
-            let result :: B.ByteString = encodeSEC Compressed publicPoint2
+            let result = encodeSEC Compressed publicPoint2
             result `H.shouldBe` compressedSECKey2
 
         H.it "Decode SEC Uncompressed format case 1" $ do

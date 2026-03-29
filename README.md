@@ -73,5 +73,14 @@
 - `cabal build` 명령으로 전체 프로젝트가 성공적으로 컴파일되는지 확인.
 - `cabal test` 명령으로 모든 테스트가 통과하는지 확인.
 
+## Module add sequence
 
-
+1. Add source-code file
+  - add `.hs` source file under `src/` directory
+  - edit `.cabal`
+    - append source-code module at `library.exposed-modules`
+2. Add test-code file
+  - add .hs test file under `test/` directory
+  - import test spec module from `test/Main.hs`
+  - edit `.cabal`
+    - append test-code module at `"test-suite impl-btc-test".other-modules`

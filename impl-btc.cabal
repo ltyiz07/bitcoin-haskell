@@ -27,8 +27,10 @@ library
                     , ECDSA.Utils.Arithmetic
                     , ECDSA.Utils.Hash
                     , Bitcoin.Keys.SEC
+                    , Bitcoin.Keys.DER
+                    , Bitcoin.Utils.Hex
 
-    -- other-modules:    Secp256k1
+    -- other-modules:    Bitcoin.Utils.Hex
 
     build-depends:    base ^>=4.20.2.0
                     , text ^>= 2.1.1
@@ -70,6 +72,7 @@ test-suite impl-btc-test
                     , ECDSA.Curve.EllipticCurveSpec
                     , ECDSA.SignatureSpec
                     , Bitcoin.Keys.SECSpec
+                    , Bitcoin.Keys.DERSpec
 
     -- LANGUAGE extensions used by modules in this package.
     -- other-extensions:
