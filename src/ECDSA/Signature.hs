@@ -8,11 +8,11 @@ module ECDSA.Signature
 
 import qualified Data.ByteString as B
 
+import Utils.Hash
+import Utils.Arithmetic
 import ECDSA.Curve.Secp256k1
 import ECDSA.Curve.EllipticCurve
-import ECDSA.Utils.Arithmetic
 import ECDSA.Field.FiniteField
-import ECDSA.Utils.Hash
 
 
 {-

@@ -1,8 +1,10 @@
-module ECDSA.Utils.PrimeSpec (spec) where
+module Utils.PrimeSpec (spec) where
 
 import qualified Test.Hspec  as H
 import qualified Test.QuickCheck as QC
-import ECDSA.Utils.Prime
+
+import Utils.Prime
+
 
 spec :: H.Spec
 spec = do

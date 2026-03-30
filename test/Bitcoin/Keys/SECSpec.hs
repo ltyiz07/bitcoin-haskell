@@ -4,10 +4,10 @@ module Bitcoin.Keys.SECSpec (spec) where
 
 import qualified Test.Hspec as H
 
+import Utils.Hex
 import ECDSA.Curve.EllipticCurve
 import ECDSA.Curve.Secp256k1
 import Bitcoin.Keys.SEC
-import Bitcoin.Utils.Hex
 
 
 spec :: H.Spec

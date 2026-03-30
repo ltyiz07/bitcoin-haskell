@@ -5,7 +5,8 @@ module Bitcoin.Keys.DER
 
 import qualified Data.ByteString as B
 import qualified Data.Serialize  as C
-import ECDSA.Utils.Arithmetic (bytesToInteger)
+
+import Utils.Arithmetic (bytesToInteger)
 
 
 {-

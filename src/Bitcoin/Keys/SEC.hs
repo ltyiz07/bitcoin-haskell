@@ -5,14 +5,13 @@ module Bitcoin.Keys.SEC
     ) where
 
 import qualified Data.ByteString as B
-import Data.Word (Word8)
 import GHC.TypeLits
 import Data.Proxy
 
+import Utils.Arithmetic (intToBytes32, bytesToInteger, powMod)
 import ECDSA.Curve.EllipticCurve (Point(..), mkPointOnCurve)
 import ECDSA.Curve.Secp256k1 (FG, secp256k1)
 import ECDSA.Field.FiniteField (FiniteField(..))
-import ECDSA.Utils.Arithmetic (intToBytes32, bytesToInteger, powMod)
 
 
 data SECFormat = Compressed | Uncompressed
@@ -21,7 +20,7 @@ data SECFormat = Compressed | Uncompressed
 encodeSEC :: SECFormat -> Point FG -> B.ByteString
 encodeSEC Compressed   (Point x y) = encodeSECCompressed x y
 encodeSEC Uncompressed (Point x y) = encodeSECUncompressed x y
-encodeSEC _            Infinity    = error "Cannot encode Infinity point in SEC format"
+encodeSEC _            Infinity    = error "encodeSEC: Cannot encode Infinity point in SEC format"
 
 decodeSEC :: B.ByteString -> Maybe (Point FG)
 decodeSEC bs =
@@ -47,7 +46,7 @@ decodeSECCompressed isOdd xBytes
     | B.length xBytes /= 32 = Nothing
     | otherwise =
         let x = fromInteger $ bytesToInteger xBytes :: FG
-            ySquare = x ^ 3 + 7
+            ySquare = x ^ (3 :: Integer) + 7
         in case sqrtModP ySquare of
             Nothing -> Nothing
             Just (evenY, oddY) -> 

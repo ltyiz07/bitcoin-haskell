@@ -1,4 +1,4 @@
-module ECDSA.Utils.Prime
+module Utils.Prime
     ( isPrime
     ) where
 

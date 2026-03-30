@@ -5,9 +5,9 @@ module Utils.Base58
 
 import qualified Data.ByteString       as B
 import qualified Data.ByteString.Char8 as C
-import Data.Word (Word8)
 
-import ECDSA.Utils.Arithmetic (bytesToInteger, intToBytes)
+import Utils.Arithmetic (bytesToInteger, intToBytes)
+
 
 b58Alphabet :: B.ByteString
 b58Alphabet = C.pack "123456789ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz"

@@ -1,10 +1,12 @@
 {-# LANGUAGE OverloadedStrings #-}
 
-module ECDSA.Utils.HashSpec (spec) where
+module Utils.HashSpec (spec) where
 
 import qualified Test.Hspec  as H
 import qualified Data.Text as T
-import ECDSA.Utils.Hash
+
+import Utils.Hash
+
 
 spec :: H.Spec
 spec = do

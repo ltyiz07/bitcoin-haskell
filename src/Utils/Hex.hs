@@ -1,4 +1,4 @@
-module Bitcoin.Utils.Hex
+module Utils.Hex
     ( hexToBytes
     , bytesToHex
     ) where

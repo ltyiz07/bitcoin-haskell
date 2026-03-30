@@ -28,7 +28,7 @@ spec = do
             let wif = WIFFormat
                     { network = Testnet
                     , secFormat = Uncompressed
-                    , privateKey = 2021 ^ 5
+                    , privateKey = 2021 ^ (5 :: Integer)
                     }
                 base58Wif = "91avARGdfge8E4tZfYLoxeJ5sGBdNJQH4kvjpWAxgzczjbCwxic"
             H.it "Encode WIF" $ do

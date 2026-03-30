@@ -10,7 +10,7 @@ import GHC.TypeLits
 import Data.Proxy
 import Data.Ratio -- For fromRational
 
-import ECDSA.Utils.Arithmetic
+import Utils.Arithmetic
 
 
 newtype FiniteField (p :: Nat) = FiniteField { getValue :: Integer }

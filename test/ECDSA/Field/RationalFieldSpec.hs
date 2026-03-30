@@ -3,7 +3,9 @@ module ECDSA.Field.RationalFieldSpec (spec) where
 import qualified Test.Hspec as H
 import Control.Exception (evaluate)
 import Data.Ratio ((%))
+
 import ECDSA.Field.RationalField
+
 
 spec :: H.Spec
 spec = do

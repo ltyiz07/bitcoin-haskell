@@ -24,13 +24,13 @@ library
                     , ECDSA.Field.FiniteField
                     , ECDSA.Curve.EllipticCurve
                     , ECDSA.Curve.Secp256k1
-                    , ECDSA.Utils.Prime
-                    , ECDSA.Utils.Arithmetic
-                    , ECDSA.Utils.Hash
+                    , Utils.Prime
+                    , Utils.Hash
                     , Bitcoin.Keys.SEC
                     , Bitcoin.Keys.DER
                     , Bitcoin.Keys.WIF
-                    , Bitcoin.Utils.Hex
+                    , Utils.Hex
+                    , Utils.Arithmetic
 
     other-modules:    Utils.Base58
 
@@ -67,8 +67,8 @@ executable impl-btc
 test-suite impl-btc-test
     import:           warnings
     default-language: GHC2024
-    other-modules:    ECDSA.Utils.PrimeSpec
-                    , ECDSA.Utils.HashSpec
+    other-modules:    Utils.PrimeSpec
+                    , Utils.HashSpec
                     , ECDSA.Field.FiniteFieldSpec
                     , ECDSA.Field.RationalFieldSpec
                     , ECDSA.Curve.EllipticCurveSpec

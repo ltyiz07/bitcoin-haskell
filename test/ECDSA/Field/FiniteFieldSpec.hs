@@ -2,7 +2,9 @@ module ECDSA.Field.FiniteFieldSpec (spec) where
 
 import qualified Test.Hspec as H
 import Control.Exception (evaluate)
+
 import ECDSA.Field.FiniteField
+
 
 spec :: H.Spec
 spec = do

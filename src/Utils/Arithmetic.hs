@@ -1,6 +1,6 @@
 {-# LANGUAGE BangPatterns #-}
 
-module ECDSA.Utils.Arithmetic
+module Utils.Arithmetic
     ( intToBytes32
     , intToBytes
     , bytesToInteger

@@ -4,8 +4,8 @@ module Bitcoin.Keys.DERSpec (spec) where
 
 import qualified Test.Hspec as H
 
+import Utils.Hex
 import Bitcoin.Keys.DER
-import Bitcoin.Utils.Hex
 
 spec :: H.Spec
 spec = do
