@@ -10,6 +10,7 @@ import qualified ECDSA.Curve.EllipticCurveSpec
 import qualified ECDSA.SignatureSpec
 import qualified Bitcoin.Keys.SECSpec
 import qualified Bitcoin.Keys.DERSpec
+import qualified Bitcoin.Keys.WIFSpec
 
 
 main :: IO ()
@@ -22,3 +23,4 @@ main = hspec $ do
     ECDSA.SignatureSpec.spec
     Bitcoin.Keys.SECSpec.spec
     Bitcoin.Keys.DERSpec.spec
+    Bitcoin.Keys.WIFSpec.spec

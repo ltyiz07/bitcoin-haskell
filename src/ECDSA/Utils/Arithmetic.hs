@@ -2,6 +2,7 @@
 
 module ECDSA.Utils.Arithmetic
     ( intToBytes32
+    , intToBytes
     , bytesToInteger
     , gcdExt
     , invMod
@@ -12,13 +13,21 @@ import qualified Data.ByteString as B
 import Data.Bits (shiftR)
 
 
--- Integer -> 빅엔디안 32 ByteString
+-- Integer -> Bit-Endian 32 ByteString
 intToBytes32 :: Integer -> B.ByteString
 intToBytes32 n = B.pack $ pad $ toBytes n
   where
     toBytes 0 = []
     toBytes x = fromIntegral (x `mod` 256) : toBytes (x `shiftR` 8)
     pad bs    = replicate (32 - length bs) 0 ++ reverse bs
+
+-- Integer -> Bit-Endian ByteString
+intToBytes :: Integer -> B.ByteString
+intToBytes 0 = B.empty
+intToBytes n = B.reverse $ B.unfoldr step n
+  where
+    step 0 = Nothing
+    step x = Just (fromIntegral (x `mod` 256), x `div` 256)
 
 -- 빅엔디안 ByteString -> Integer
 bytesToInteger :: B.ByteString -> Integer

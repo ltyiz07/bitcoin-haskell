@@ -81,6 +81,6 @@
     - append source-code module at `library.exposed-modules`
 2. Add test-code file
   - add .hs test file under `test/` directory
-  - import test spec module from `test/Main.hs`
+  - import test spec module from `test/Main.hs` and add hspec item
   - edit `.cabal`
     - append test-code module at `"test-suite impl-btc-test".other-modules`
