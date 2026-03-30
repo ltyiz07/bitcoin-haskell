@@ -18,6 +18,7 @@ common warnings
 
 library
     import:           warnings
+
     exposed-modules:  ECDSA.Signature
                     , ECDSA.Field.RationalField
                     , ECDSA.Field.FiniteField
@@ -26,8 +27,12 @@ library
                     , ECDSA.Utils.Prime
                     , ECDSA.Utils.Arithmetic
                     , ECDSA.Utils.Hash
+                    , Bitcoin.Keys.SEC
+                    , Bitcoin.Keys.DER
+                    , Bitcoin.Keys.WIF
+                    , Bitcoin.Utils.Hex
 
-    -- other-modules:    Secp256k1
+    other-modules:    Utils.Base58
 
     build-depends:    base ^>=4.20.2.0
                     , text ^>= 2.1.1
@@ -35,6 +40,8 @@ library
                     , crypton ^>= 1.0
                     , base16-bytestring ^>= 1.0
                     , memory ^>= 0.18
+                    , cereal ^>= 0.5
+                    , base58-bytestring ^>= 0.1
 
     hs-source-dirs:   src
     default-language: GHC2024
@@ -66,6 +73,9 @@ test-suite impl-btc-test
                     , ECDSA.Field.RationalFieldSpec
                     , ECDSA.Curve.EllipticCurveSpec
                     , ECDSA.SignatureSpec
+                    , Bitcoin.Keys.SECSpec
+                    , Bitcoin.Keys.DERSpec
+                    , Bitcoin.Keys.WIFSpec
 
     -- LANGUAGE extensions used by modules in this package.
     -- other-extensions:
@@ -77,4 +87,6 @@ test-suite impl-btc-test
                     , hspec ^>=2.11
                     , QuickCheck ^>=2.14
                     , text ^>= 2.1.1
+                    , bytestring ^>= 0.11.4
+                    , base16-bytestring ^>= 1.0
 
