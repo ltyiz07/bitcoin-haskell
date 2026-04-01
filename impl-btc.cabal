@@ -24,15 +24,18 @@ library
                     , ECDSA.Field.FiniteField
                     , ECDSA.Curve.EllipticCurve
                     , ECDSA.Curve.Secp256k1
-                    , Utils.Prime
-                    , Utils.Hash
                     , Bitcoin.Keys.SEC
                     , Bitcoin.Keys.DER
                     , Bitcoin.Keys.WIF
+                    , Bitcoin.Transaction
+                    , Utils.Prime
                     , Utils.Hex
+                    , Utils.Hash
                     , Utils.Arithmetic
+                    , Utils.Print.PrintTransaction
 
     other-modules:    Utils.Base58
+                    , Bitcoin.VarInt
 
     build-depends:    base ^>=4.20.2.0
                     , text ^>= 2.1.1
@@ -76,6 +79,7 @@ test-suite impl-btc-test
                     , Bitcoin.Keys.SECSpec
                     , Bitcoin.Keys.DERSpec
                     , Bitcoin.Keys.WIFSpec
+                    , Bitcoin.TransactionSpec
 
     -- LANGUAGE extensions used by modules in this package.
     -- other-extensions:
@@ -89,4 +93,4 @@ test-suite impl-btc-test
                     , text ^>= 2.1.1
                     , bytestring ^>= 0.11.4
                     , base16-bytestring ^>= 1.0
-
+                    , cereal ^>= 0.5

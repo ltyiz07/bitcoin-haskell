@@ -11,6 +11,7 @@ import qualified ECDSA.SignatureSpec
 import qualified Bitcoin.Keys.SECSpec
 import qualified Bitcoin.Keys.DERSpec
 import qualified Bitcoin.Keys.WIFSpec
+import qualified Bitcoin.TransactionSpec
 
 
 main :: IO ()
@@ -24,3 +25,4 @@ main = hspec $ do
     Bitcoin.Keys.SECSpec.spec
     Bitcoin.Keys.DERSpec.spec
     Bitcoin.Keys.WIFSpec.spec
+    Bitcoin.TransactionSpec.spec
