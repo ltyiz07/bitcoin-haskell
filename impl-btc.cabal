@@ -28,6 +28,7 @@ library
                     , Bitcoin.Keys.DER
                     , Bitcoin.Keys.WIF
                     , Bitcoin.Transaction
+                    , Bitcoin.Network.Discovery
                     , Utils.Prime
                     , Utils.Hex
                     , Utils.Hash
@@ -45,6 +46,9 @@ library
                     , memory ^>= 0.18
                     , cereal ^>= 0.5
                     , base58-bytestring ^>= 0.1
+                    , network ^>= 3.2
+                    , time ^>= 1.12
+                    , random ^>= 1.2
 
     hs-source-dirs:   src
     default-language: GHC2024
@@ -80,6 +84,7 @@ test-suite impl-btc-test
                     , Bitcoin.Keys.DERSpec
                     , Bitcoin.Keys.WIFSpec
                     , Bitcoin.TransactionSpec
+                    , Bitcoin.Network.DiscoverySpec
 
     -- LANGUAGE extensions used by modules in this package.
     -- other-extensions:

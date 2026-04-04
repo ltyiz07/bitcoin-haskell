@@ -26,12 +26,12 @@
 
 ### Bitcoin Protocol
 
-- [ ] Setup & Utilities
+- [x] Setup & Utilities
   - [x] Add `cereal`, `base58-bytestring` to `.cabal` (add `network` later)
   - [x] Create `src/Bitcoin` directory structure
   - [x] Implement modular square root function in `src/ECDSA/Field/FiniteField.hs`
-  - [ ] Implement `src/Bitcoin/Utils/VarInt.hs` for `VarInt` serialization/deserialization
-  - [ ] Implement other utility files in `src/Utils/` as needed (e.g., for endianness, specific byte manipulations)
+  - [x] Implement `src/Bitcoin/Utils/VarInt.hs` for `VarInt` serialization/deserialization
+  - [x] Implement other utility files in `src/Utils/` as needed (e.g., for endianness, specific byte manipulations)
    
 - [x] Key Serialization
   - [x] SEC Format
@@ -43,13 +43,13 @@
   - [x] DER Format
     - [x] Implement DER encoding for signatures
 
-- [ ] Transaction Serialization
-  - [ ] Define data types (`Transaction`, `TxIn`, `TxOut`, `Script`)
-  - [ ] Implement `Binary` instance for `Script` (using `VarInt`)
-  - [ ] Implement `Binary` instances for `TxOut`, `TxIn`, etc.
-  - [ ] Implement `Binary` instance for `Transaction`
-    - [ ] Support legacy transaction format
-    - [ ] Support SegWit transaction format (marker & witness data)
+- [x] Transaction Serialization
+  - [x] Define data types (`Transaction`, `TxIn`, `TxOut`, `Script`)
+  - [x] Implement `Binary` instance for `Script` (using `VarInt`)
+  - [x] Implement `Binary` instances for `TxOut`, `TxIn`, etc.
+  - [x] Implement `Binary` instance for `Transaction`
+    - [x] Support legacy transaction format
+    - [x] Support SegWit transaction format (marker & witness data)
 
 - [ ] Block Serialization
   - [ ] Define data types (`BlockHeader`, `Block`)
@@ -84,6 +84,9 @@
   - import test spec module from `test/Main.hs` and add hspec item
   - edit `.cabal`
     - append test-code module at `"test-suite impl-btc-test".other-modules`
+
+## Network connection
+
 
 ## Sample data
 
@@ -191,3 +194,4 @@
 ```
 0200000000010292f1ff48ccd7f834ce68c79aff09453a62dc8a96200229be2134f03f62a371d80100000000fdffffff07267cf7be588dd112ce65df52769e95bd27b0f26e3b7904ef6089539798fff41600000000fdffffff0420a1070000000000160014a5760be838efd97c65017977e6c48ac8b43389dd20a1070000000000160014f11789b05aaee3bbf124c493ca456ae3ff7dfe18acfdeb00000000001600143d433bf051470ae73abeaea5a1cdf61fdb9b324220a1070000000000160014bc4f6b38ec77af76e2080b0e7d0733b2bba27aff0247304402206aacf8e1cf33fada414f642c4edf909f29c6eac71cd9d1b3f05a7c2afe75839402201275465d1b47d23e0a7690f8d3c2e39bb845f10f0149fe5e64ccadc465e68878012102a95eec718942d730689fc78301d356f9f96db7e87514e20bebc80e4d2e64f876024730440220019937ee0e9215696b9c224acbe0d01b2ef12d6a5656460a34f41d71ac14d33d022076c338900c7a1a81e103ebbbbbbf236a369b422dabb1edfae383026d8d1d71a80121031856628a41cb111b05efb23ef8e5026536275846acfcef8fe463d3e313e3fc1900000000
 ```
+
