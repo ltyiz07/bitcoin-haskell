@@ -29,6 +29,8 @@ library
                     , Bitcoin.Keys.WIF
                     , Bitcoin.Transaction
                     , Bitcoin.Network.Discovery
+                    , Bitcoin.Network.Message
+                    , Bitcoin.Network.Connection
                     , Utils.Prime
                     , Utils.Hex
                     , Utils.Hash
@@ -85,6 +87,7 @@ test-suite impl-btc-test
                     , Bitcoin.Keys.WIFSpec
                     , Bitcoin.TransactionSpec
                     , Bitcoin.Network.DiscoverySpec
+                    , Bitcoin.Network.ConnectionSpec
 
     -- LANGUAGE extensions used by modules in this package.
     -- other-extensions:

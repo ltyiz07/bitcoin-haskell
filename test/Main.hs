@@ -13,6 +13,7 @@ import qualified Bitcoin.Keys.DERSpec
 import qualified Bitcoin.Keys.WIFSpec
 import qualified Bitcoin.TransactionSpec
 import qualified Bitcoin.Network.DiscoverySpec
+import qualified Bitcoin.Network.ConnectionSpec
 
 
 main :: IO ()
@@ -28,3 +29,4 @@ main = hspec $ do
     Bitcoin.Keys.WIFSpec.spec
     Bitcoin.TransactionSpec.spec
     Bitcoin.Network.DiscoverySpec.spec
+    Bitcoin.Network.ConnectionSpec.spec
