@@ -1,101 +1,52 @@
 {-# LANGUAGE OverloadedStrings #-}
 
 module Bitcoin.Network.Connection
-    ( connectAndHandshake
+    ( withConnection
+    , runMessageLoop
     ) where
 
 import Network.Socket
     ( Socket, SockAddr(..), Family(AF_INET, AF_INET6)
     , SocketType(Stream), socket, connect, close, defaultProtocol
     )
-import Network.Socket.ByteString (sendAll, recv)
-import Data.Serialize            (runPut, put, get)
+import Network.Socket.ByteString (recv)
 import Data.Serialize.Get        (runGetPartial, Result(..))
-import qualified Data.ByteString      as BS
-import qualified Data.ByteString.Char8 as BS8
-import Data.Time.Clock.POSIX (getPOSIXTime)
-import System.Random         (randomIO)
-import Control.Exception     (bracket)
-import Control.Monad         (when)
+import qualified Data.ByteString as BS
+import Control.Exception         (bracket)
+import Data.Serialize (get)
 
-import Bitcoin.Network.Message
+import Bitcoin.Network.Message (Message)
 
-
-connectAndHandshake :: SockAddr -> IO ()
-connectAndHandshake addr = do
+withConnection :: SockAddr -> (Socket -> IO a) -> IO a
+withConnection addr action = do
     putStrLn $ "[Connection] 연결 시도: " ++ show addr
     let family = case addr of
             SockAddrInet {}  -> AF_INET
             SockAddrInet6 {} -> AF_INET6
             _                -> AF_INET
+    
     bracket (socket family Stream defaultProtocol) close $ \sock -> do
         connect sock addr
         putStrLn "[Connection] TCP 연결 성공"
-        sendVersion sock
-        result <- runConnectionLoop sock
-        case result of
-            Left  err -> putStrLn $ "[Connection] 연결 종료: " ++ err
-            Right ()  -> putStrLn   "[Connection] 통신 종료"
+        action sock
+
+-- | 초기 버퍼를 받아 파싱을 시작하고, 루프 종료 시 '남은 버퍼'를 반환합니다.
+runMessageLoop :: Socket -> BS.ByteString -> (Message -> IO Bool) -> IO (Either String BS.ByteString)
+runMessageLoop sock initialBuffer onMessage = go (runGetPartial get initialBuffer)
   where
-    runConnectionLoop :: Socket -> IO (Either String ())
-    runConnectionLoop sock = go False False (runGetPartial get BS.empty)
-      where
-        go :: Bool -> Bool -> Result Message -> IO (Either String ())
-        go hasVer hasVerack parseState = case parseState of
-            Fail err _ ->
-                return $ Left err
-
-            Partial feed -> do
-                chunk <- recv sock 4096  -- 핸드셰이크용, 블록 수신 시 증가 필요
-                if BS.null chunk
-                    then return $ Left "연결 끊김 (상대방이 소켓을 닫음)"
-                    else go hasVer hasVerack (feed chunk)
-
-            Done msg rest -> do
-                (nextVer, nextVerack) <- handleMessage sock msg hasVer hasVerack
-                when (not (hasVer && hasVerack) && nextVer && nextVerack) $
-                    putStrLn "[Connection] 🎉 핸드셰이크 완료"
-                -- 핸드셰이크 완료 후에도 ping/pong 등 처리를 위해 루프 유지
-                go nextVer nextVerack (runGetPartial get rest)
-
-    handleMessage :: Socket -> Message -> Bool -> Bool -> IO (Bool, Bool)
-    handleMessage sock msg hasVer hasVerack = do
-        let cmd = BS8.unpack $ unCommand (msgCommand msg)
-        putStrLn $ "[Connection] 수신: " ++ cmd
-        case cmd of
-            "version" -> do
-                sendAll sock (runPut $ put $ Message (Command "verack") BS.empty)
-                putStrLn "[Connection] 전송: verack"
-                return (True, hasVerack)
-            "verack" ->
-                return (hasVer, True)
-            "ping" -> do
-                sendAll sock (runPut $ put $ Message (Command "pong") (msgPayload msg))
-                putStrLn "[Connection] 전송: pong"
-                return (hasVer, hasVerack)
-            _ ->
-                return (hasVer, hasVerack)
-
-    sendVersion :: Socket -> IO ()
-    sendVersion sock = do
-        myVer <- createMyVersion
-        let msg = Message (Command "version") (runPut $ put myVer)
-        sendAll sock (runPut $ put msg)
-        putStrLn "[Connection] 전송: version"
-
-    createMyVersion :: IO VersionMessage
-    createMyVersion = do
-        now   <- round <$> getPOSIXTime
-        nonce <- randomIO
-        let emptyAddr = NetworkAddress 0 (IPAddress (BS.replicate 16 0x00) 0)
-        return VersionMessage
-            { verVersion     = 70015
-            , verServices    = 0
-            , verTimestamp   = now
-            , verAddrRecv    = emptyAddr
-            , verAddrFrom    = emptyAddr
-            , verNonce       = nonce
-            , verUserAgent   = "/ProgrammingBitcoin:0.1/"
-            , verStartHeight = 0
-            , verRelay       = False
-            }
+    go parseState = case parseState of
+        Fail err _ -> 
+            return $ Left $ "파싱 에러: " ++ err
+            
+        Partial feed -> do
+            chunk <- recv sock 32768
+            if BS.null chunk
+                then return $ Left "연결 끊김 (상대방이 소켓을 닫음)"
+                else go (feed chunk)
+                
+        Done msg rest -> do
+            shouldContinue <- onMessage msg
+            if shouldContinue
+                then go (runGetPartial get rest)
+                -- ★ 핵심: 루프를 끝낼 때 남은 찌꺼기 버퍼(rest)를 살려서 반환합니다!
+                else return $ Right rest

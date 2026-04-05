@@ -3,7 +3,7 @@ module Bitcoin.Network.ConnectionSpec (spec) where
 import qualified Test.Hspec as H
 
 import Bitcoin.Network.Discovery (defaultDnsSeeds, getPeerIPs)
-import Bitcoin.Network.Connection (connectAndHandshake)
+import Bitcoin.Network.Peer (runPeer)
 
 
 spec :: H.Spec
@@ -16,5 +16,5 @@ spec = do
                 then putStrLn "연결 가능한 노드가 없습니다."
                 else do
                     let firstIp = head ips
-                    connectAndHandshake firstIp
+                    runPeer firstIp
 

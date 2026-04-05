@@ -31,6 +31,8 @@ library
                     , Bitcoin.Network.Discovery
                     , Bitcoin.Network.Message
                     , Bitcoin.Network.Connection
+                    , Bitcoin.Network.Handshake
+                    , Bitcoin.Network.Peer
                     , Utils.Prime
                     , Utils.Hex
                     , Utils.Hash
