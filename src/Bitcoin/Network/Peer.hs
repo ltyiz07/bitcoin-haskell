@@ -4,56 +4,56 @@ module Bitcoin.Network.Peer
     ( runPeer
     ) where
 
-import Network.Socket (Socket, SockAddr)
-import Network.Socket.ByteString (sendAll)
-import Data.Serialize (runPut, put, putWord32le, putWord8, putByteString)
+import Network.Socket (SockAddr)
+import Data.Serialize (runPut, putWord32le, putWord8, putByteString)
 import qualified Data.ByteString as BS
 import qualified Data.ByteString.Char8 as BS8
 
 import Bitcoin.Network.Message
-import Bitcoin.Network.Connection (withConnection, runMessageLoop)
+import Bitcoin.Network.Connection (NodeConnection, withConnection, sendMessage, recvMessage)
 import Bitcoin.Network.Handshake (performHandshake)
 
 runPeer :: SockAddr -> IO ()
-runPeer addr = withConnection addr $ \sock -> do
-    handshakeResult <- performHandshake sock
+runPeer addr = withConnection addr $ \conn -> do
+    -- 1. 인증 대기
+    success <- performHandshake conn
     
-    case handshakeResult of
-        Right leftoverBuffer -> do
-            -- 핸드셰이크 성공 직후 getheaders 요청 발송
-            sendGetHeaders sock
-            
-            -- ★ 중요: Handshake가 끝난 시점에 남겨진 '찌꺼기 버퍼(leftoverBuffer)'를 그대로 이어받아 메인 루프 시작!
-            result <- runMessageLoop sock leftoverBuffer (peerHandler sock)
-            
-            case result of
-                Left err -> putStrLn $ "[Peer] 노드와 연결 끊어짐: " ++ err
-                Right _  -> putStrLn "[Peer] 통신 정상 종료"
-        Left err -> 
+    if success
+        then do
+            -- 2. 헤더 요청
+            sendGetHeaders conn
+            -- 3. 메인 무한 루프 시작
+            peerLoop conn
+        else 
             putStrLn "[Peer] 핸드셰이크 실패로 통신을 종료합니다."
 
   where
-    peerHandler :: Socket -> Message -> IO Bool
-    peerHandler sock msg = do
-        let cmd = BS8.unpack $ unCommand (msgCommand msg)
-        
-        case cmd of
-            "ping" -> do
-                putStrLn "[Peer] 수신: ping -> 전송: pong"
-                sendAll sock (runPut $ put $ Message (Command "pong") (msgPayload msg))
-            "headers" -> do
-                let payload = msgPayload msg
-                putStrLn $ "[Peer] 📦 블록 헤더 수신 완료! (크기: " ++ show (BS.length payload) ++ " bytes)"
-                BS.writeFile "data/res_headers.dat" payload
-                putStrLn "[Peer] 💾 'res_headers.dat' 파일 저장 완료."
-            _ -> 
-                -- 무시되는 메시지는 페이로드 크기라도 로그에 찍어둡니다. (디버깅 용이)
-                putStrLn $ "[Peer] 수신 (무시됨): " ++ cmd ++ " (Payload: " ++ show (BS.length (msgPayload msg)) ++ " bytes)"
-        
-        return True
+    -- | 인증 완료 후 일반적인 메시지 처리 무한 루프
+    peerLoop :: NodeConnection -> IO ()
+    peerLoop conn = do
+        result <- recvMessage conn
+        case result of
+            Left err -> 
+                putStrLn $ "[Peer] 통신 종료: " ++ err
+            Right (msg :: Message) -> do
+                let cmd = BS8.unpack $ unCommand (msgCommand msg)
+                
+                case cmd of
+                    "ping" -> do
+                        putStrLn "[Peer] 수신: ping -> 전송: pong"
+                        sendMessage conn (Message (Command "pong") (msgPayload msg))
+                    "headers" -> do
+                        let payload = msgPayload msg
+                        putStrLn $ "[Peer] 📦 블록 헤더 수신 완료! (" ++ show (BS.length payload) ++ " bytes)"
+                        BS.writeFile "res_headers.dat" payload
+                    _ -> 
+                        putStrLn $ "[Peer] 수신 (무시됨): " ++ cmd
+                
+                -- 다음 메시지를 기다림
+                peerLoop conn
 
-    sendGetHeaders :: Socket -> IO ()
-    sendGetHeaders sock = do
+    sendGetHeaders :: NodeConnection -> IO ()
+    sendGetHeaders conn = do
         let payload = runPut $ do
                 putWord32le 70015
                 putWord8 1
@@ -61,7 +61,7 @@ runPeer addr = withConnection addr $ \sock -> do
                 putByteString (BS.replicate 32 0)
             msg = Message (Command "getheaders") payload
             
-        sendAll sock (runPut $ put msg)
+        sendMessage conn msg
         putStrLn "[Peer] 🚀 전송: getheaders (제네시스 블록 이후 2000개 요청)"
 
     genesisHashLE :: BS.ByteString
