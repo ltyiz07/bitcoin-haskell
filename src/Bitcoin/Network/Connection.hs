@@ -34,32 +34,29 @@ connectAndHandshake addr = do
         sendVersion sock
         result <- runConnectionLoop sock
         case result of
-            Left  err -> putStrLn $ "[Connection] 연결 종료: " ++ err
-            Right ()  -> putStrLn   "[Connection] 통신 종료"
+            Left  err      -> putStrLn $ "[Connection] 연결 종료: " ++ err
+            Right restByte -> putStrLn   "[Connection] 통신 종료"
+        putStrLn "[Connection] 🎉 핸드셰이크 완료"
   where
-    runConnectionLoop :: Socket -> IO (Either String ())
+    runConnectionLoop :: Socket -> IO (Either String BS.ByteString)
     runConnectionLoop sock = go False False (runGetPartial get BS.empty)
       where
-        go :: Bool -> Bool -> Result Message -> IO (Either String ())
+        go :: Bool -> Bool -> Result Message -> IO (Either String BS.ByteString)
+        go True True parseState = return $ Right parseState
         go hasVer hasVerack parseState = case parseState of
             Fail err _ ->
                 return $ Left err
-
             Partial feed -> do
-                chunk <- recv sock 4096  -- 핸드셰이크용, 블록 수신 시 증가 필요
+                chunk <- recv sock 4096
                 if BS.null chunk
                     then return $ Left "연결 끊김 (상대방이 소켓을 닫음)"
                     else go hasVer hasVerack (feed chunk)
-
             Done msg rest -> do
-                (nextVer, nextVerack) <- handleMessage sock msg hasVer hasVerack
-                when (not (hasVer && hasVerack) && nextVer && nextVerack) $
-                    putStrLn "[Connection] 🎉 핸드셰이크 완료"
-                -- 핸드셰이크 완료 후에도 ping/pong 등 처리를 위해 루프 유지
-                go nextVer nextVerack (runGetPartial get rest)
+                (nextVer, nextVerack) <- handleConnection sock msg hasVer hasVerack
+                go nextVer nextVerack parseState
 
-    handleMessage :: Socket -> Message -> Bool -> Bool -> IO (Bool, Bool)
-    handleMessage sock msg hasVer hasVerack = do
+    handleConnection :: Socket -> Message -> Bool -> Bool -> IO (Bool, Bool)
+    handleConnection sock msg hasVer hasVerack = do
         let cmd = BS8.unpack $ unCommand (msgCommand msg)
         putStrLn $ "[Connection] 수신: " ++ cmd
         case cmd of
@@ -67,13 +64,13 @@ connectAndHandshake addr = do
                 sendAll sock (runPut $ put $ Message (Command "verack") BS.empty)
                 putStrLn "[Connection] 전송: verack"
                 return (True, hasVerack)
-            "verack" ->
+            "verack"  ->
                 return (hasVer, True)
-            "ping" -> do
+            "ping"    -> do
                 sendAll sock (runPut $ put $ Message (Command "pong") (msgPayload msg))
                 putStrLn "[Connection] 전송: pong"
                 return (hasVer, hasVerack)
-            _ ->
+            _         ->
                 return (hasVer, hasVerack)
 
     sendVersion :: Socket -> IO ()
