@@ -116,12 +116,16 @@ data Message = Message
     } deriving (Show, Eq)
 
 -- 비트코인 메인넷 식별자 (testnetMagic: 0x0b110907)
-mainnetMagic :: Word32
-mainnetMagic = 0xF9BEB4D9
+--
+data Network = Mainnet | Testnet deriving (Show, Eq)
+
+magicBytes :: Network -> Word32
+magicBytes Mainnet = 0xF9BEB4D9
+magicBytes Testnet = 0x0B110907
 
 instance Serialize Message where
     put msg = do
-        putWord32be mainnetMagic
+        putWord32be (magicBytes Mainnet)
         put (msgCommand msg)
         putWord32le (fromIntegral $ BS.length (msgPayload msg))
         let checksum = BS.take 4 $ hash256 (msgPayload msg)
@@ -130,8 +134,8 @@ instance Serialize Message where
 
     get = do
         magic <- getWord32be
-        unless (magic == mainnetMagic) $
-            fail $ "Invalid magic bytes: expected " ++ show mainnetMagic ++ ", got " ++ show magic
+        unless (magic == magicBytes Mainnet) $
+            fail $ "Invalid magic bytes: expected " ++ show (magicBytes Mainnet) ++ ", got " ++ show magic
         cmd <- get
         len <- getWord32le
         chk <- getByteString 4

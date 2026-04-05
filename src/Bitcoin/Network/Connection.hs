@@ -2,6 +2,7 @@
 
 module Bitcoin.Network.Connection
     ( NodeConnection
+    , ConnectionError(..)
     , withConnection
     , sendMessage
     , recvMessage
@@ -16,51 +17,82 @@ import Data.Serialize            (Serialize, put, get, runPut)
 import Data.Serialize.Get        (runGetPartial, Result(..))
 import qualified Data.ByteString as BS
 import Data.IORef                (IORef, newIORef, readIORef, writeIORef)
-import Control.Exception         (bracket)
+import Control.Exception         (bracket, catch, SomeException)
+import Control.Monad.Except      (ExceptT(..), throwError, runExceptT )
 
--- | 소켓과 수신 버퍼(Leftover)의 상태를 하나로 묶은 커스텀 데이터 타입
+-- ---------------------------------------------------------------------------
+-- 타입 정의
+-- ---------------------------------------------------------------------------
+
+-- | 연결 및 통신 중 발생할 수 있는 에러를 명시적으로 표현합니다.
+-- String 대신 구체적인 타입을 사용하면 호출부에서 패턴 매칭이 가능합니다.
+data ConnectionError
+    = ConnectFailed   String  -- ^ TCP 연결 자체 실패
+    | ParseError      String  -- ^ 수신 메시지 역직렬화 실패
+    | ConnectionClosed        -- ^ 상대방이 소켓을 닫음
+    deriving (Show, Eq)
+
+-- | 소켓과 수신 버퍼(Leftover)의 상태를 하나로 묶은 커스텀 데이터 타입.
+-- 생성자를 외부에 노출하지 않아 직접 조작을 방지합니다.
 data NodeConnection = NodeConnection Socket (IORef BS.ByteString)
 
--- | 소켓을 열고 버퍼를 초기화한 뒤 안전하게 닫아주는 함수
-withConnection :: SockAddr -> (NodeConnection -> IO a) -> IO a
-withConnection addr action = do
+-- | 수신 버퍼 크기 (bytes)
+recvBufferSize :: Int
+recvBufferSize = 32768
+
+-- ---------------------------------------------------------------------------
+-- 공개 API
+-- ---------------------------------------------------------------------------
+
+-- | 소켓을 열고 버퍼를 초기화한 뒤 안전하게 닫아주는 함수.
+-- 연결 실패 시 예외를 던지는 대신 Left ConnectFailed 를 반환합니다.
+withConnection
+    :: SockAddr
+    -> (NodeConnection -> ExceptT ConnectionError IO a)
+    -> ExceptT ConnectionError IO a
+withConnection addr action = ExceptT $ do
     putStrLn $ "[Connection] 연결 시도: " ++ show addr
     let family = case addr of
             SockAddrInet {}  -> AF_INET
             SockAddrInet6 {} -> AF_INET6
             _                -> AF_INET
-            
-    bracket (socket family Stream defaultProtocol) close $ \sock -> do
-        connect sock addr
-        putStrLn "[Connection] TCP 연결 성공"
-        
-        -- 빈 바이트스트림으로 수신 버퍼(상태) 생성
-        bufferRef <- newIORef BS.empty
-        action (NodeConnection sock bufferRef)
 
--- | 직렬화(Serialize) 가능한 어떤 메시지든 네트워크로 전송합니다.
-sendMessage :: Serialize a => NodeConnection -> a -> IO ()
-sendMessage (NodeConnection sock _) msg = 
-    sendAll sock (runPut $ put msg)
+    result <- bracket (socket family Stream defaultProtocol) close $ \sock ->
+        (do
+            connect sock addr
+            putStrLn "[Connection] TCP 연결 성공"
+            bufferRef <- newIORef BS.empty
+            runExceptT $ action (NodeConnection sock bufferRef)
+        ) `catch` \(e :: SomeException) ->
+            return $ Left $ ConnectFailed (show e)
 
--- | 네트워크에서 완벽한 1개의 메시지가 조립될 때까지 대기하고 반환합니다.
--- 내부적으로 찌꺼기 버퍼(IORef)를 관리하여 외부에서는 버퍼에 신경 쓸 필요가 없습니다.
-recvMessage :: Serialize a => NodeConnection -> IO (Either String a)
-recvMessage (NodeConnection sock bufferRef) = do
+    return result
+
+-- | 직렬화 가능한 메시지를 네트워크로 전송합니다.
+sendMessage :: Serialize a => NodeConnection -> a -> ExceptT ConnectionError IO ()
+sendMessage (NodeConnection sock _) msg = ExceptT $
+    (sendAll sock (runPut $ put msg) >> return (Right ()))
+    `catch` \(e :: SomeException) ->
+        return $ Left $ ConnectFailed ("전송 실패: " ++ show e)
+
+-- | 네트워크에서 완전한 메시지 1개가 조립될 때까지 대기 후 반환합니다.
+-- 내부적으로 찌꺼기 버퍼(IORef)를 관리하므로 호출부에서 버퍼를 신경 쓸 필요가 없습니다.
+recvMessage :: Serialize a => NodeConnection -> ExceptT ConnectionError IO a
+recvMessage (NodeConnection sock bufferRef) = ExceptT $ do
     initialBuf <- readIORef bufferRef
     go (runGetPartial get initialBuf)
   where
     go parseState = case parseState of
-        Fail err _ -> 
-            return $ Left $ "파싱 에러: " ++ err
-            
+        Fail err _ ->
+            return $ Left $ ParseError err
+
         Partial feed -> do
-            chunk <- recv sock 32768
+            chunk <- recv sock recvBufferSize
             if BS.null chunk
-                then return $ Left "연결 끊김 (상대방이 소켓을 닫음)"
+                then return $ Left ConnectionClosed
                 else go (feed chunk)
-                
+
         Done msg rest -> do
-            -- ★ 1개의 메시지를 완성했다면, 남은 찌꺼기(rest)를 버퍼에 안전하게 보관!
+            -- 메시지 1개 완성 후 남은 바이트를 버퍼에 보존합니다.
             writeIORef bufferRef rest
             return $ Right msg
