@@ -35,6 +35,7 @@ library
                     , Utils.Hex
                     , Utils.Hash
                     , Utils.Arithmetic
+                    , Utils.Logger
                     , Utils.Print.PrintTransaction
 
     other-modules:    Utils.Base58
