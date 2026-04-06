@@ -17,12 +17,7 @@ import Bitcoin.Network.Connection
     ( NodeConnection, ConnectionError(..), withConnection, sendMessage, recvMessage)
 import Bitcoin.Network.Handshake       (HandshakeError(..), performHandshake)
 
--- ---------------------------------------------------------------------------
--- 공개 API
--- ---------------------------------------------------------------------------
 
--- | 주어진 주소의 노드에 연결하여 핸드셰이크 후 메시지 루프를 실행합니다.
--- 에러는 출력 후 종료합니다.
 runPeer :: SockAddr -> IO ()
 runPeer addr = do
     result <- runExceptT $ withConnection addr peerSession
@@ -30,12 +25,6 @@ runPeer addr = do
         Left err -> putStrLn $ "[Peer] 종료: " ++ describeError err
         Right _  -> putStrLn "[Peer] 정상 종료"
 
--- ---------------------------------------------------------------------------
--- 내부 세션 흐름
--- ---------------------------------------------------------------------------
-
--- | 연결 후 전체 세션 흐름을 기술합니다.
--- 1. 핸드셰이크  2. 헤더 요청  3. 메시지 루프
 peerSession :: NodeConnection -> ExceptT ConnectionError IO ()
 peerSession conn = do
     liftHandshake $ performHandshake conn
@@ -47,13 +36,10 @@ peerSession conn = do
 -- Left(에러) 수신 시 루프에서 빠져나옵니다.
 peerLoop :: NodeConnection -> ExceptT ConnectionError IO ()
 peerLoop conn = ExceptT $ do
-    result <- runExceptT $ forever $ do
+    runExceptT $ forever $ do
         msg <- recvMessage conn
         handleMessage conn msg
-    -- forever 는 Right 를 반환하지 않으므로 Left 만 내려옵니다.
-    return result
 
--- | 단일 메시지를 처리합니다.
 -- 새 명령어를 추가할 때 이 함수만 수정하면 됩니다.
 handleMessage :: NodeConnection -> Message -> ExceptT ConnectionError IO ()
 handleMessage conn msg = do
