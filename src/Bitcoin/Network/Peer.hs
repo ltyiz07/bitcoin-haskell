@@ -1,4 +1,5 @@
 {-# LANGUAGE OverloadedStrings #-}
+{-# LANGUAGE OverloadedRecordDot #-}
 
 module Bitcoin.Network.Peer
     ( runPeer
@@ -11,7 +12,8 @@ import qualified Data.ByteString.Char8 as BS8
 import Control.Monad.Except            (ExceptT(..), runExceptT)
 import Control.Monad.IO.Class          (liftIO)
 
-import Bitcoin.Network.Message
+import Bitcoin.Network.Message.Payload.Version
+import Bitcoin.Network.Message.Header
 import Bitcoin.Network.Connection
     ( NodeConnection, ConnectionError(..), withConnection, sendMessage, recvMessage)
 import Bitcoin.Network.Handshake       (performHandshake, liftHandshakeException)
@@ -29,10 +31,10 @@ peerSession conn = do
     peerVersion <- liftHandshakeException $ performHandshake conn
     liftIO $ do
         putStrLn $ "[Peer] Peer version"
-        putStrLn $ "  ├─ 프로토콜:   " ++ show (verVersion peerVersion)
-        putStrLn $ "  ├─ 서비스:     " ++ show (verServices peerVersion)
-        putStrLn $ "  ├─ 클라이언트: " ++ BS8.unpack (verUserAgent peerVersion)
-        putStrLn $ "  └─ 블록 높이:  " ++ show (verStartHeight peerVersion)
+        putStrLn $ "  ├─ 프로토콜:   " ++ show peerVersion.version
+        putStrLn $ "  ├─ 서비스:     " ++ show peerVersion.services
+        putStrLn $ "  ├─ 클라이언트: " ++ BS8.unpack peerVersion.userAgent
+        putStrLn $ "  └─ 블록 높이:  " ++ show peerVersion.startHeight
     initialSyncState <- sendGetHeaders conn
     handleMessageLoop conn initialSyncState 
 
@@ -46,15 +48,15 @@ handleMessageLoop :: NodeConnection -> SyncState -> ExceptT ConnectionError IO (
 handleMessageLoop _ (SyncState True) = do
     liftIO $ putStrLn "[Peer] 완료 상태 확인"
 handleMessageLoop conn syncState = do
-    msg <- recvMessage conn
-    let cmd = BS8.unpack $ unCommand (msgCommand msg)
+    msg <- (recvMessage conn :: ExceptT ConnectionError IO Message)
+    let cmd = BS8.unpack $ unCommand msg.header.command
     newSyncState <- case cmd of
         "ping" -> do
             liftIO $ putStrLn "[Peer] 수신: ping -> 전송: pong"
-            sendMessage conn (Message (Command "pong") (msgPayload msg))
+            sendMessage conn (Message (MessageHeader Mainnet (Command "pong")) mempty)
             return syncState 
         "headers" -> do
-            let payload = msgPayload msg
+            let payload = msg.payload
             liftIO $ do
                 putStrLn $ "[Peer] 📦 블록 헤더 수신! (" ++ show (BS.length payload) ++ " bytes)"
             return syncState { headersCompleted = True }
@@ -70,7 +72,7 @@ sendGetHeaders conn = do
                 putWord8 1                          -- Locator 해시 개수
                 putByteString genesisHashLE         -- 시작 해시 (little-endian)
                 putByteString (BS.replicate 32 0)   -- 종료 해시 (0 = 끝까지)
-        msg = Message (Command "getheaders") payload
+        msg = Message (MessageHeader Mainnet (Command "getheaders")) payload
     sendMessage conn msg
     liftIO $ putStrLn "[Peer] 🚀 전송: getheaders (제네시스 블록 이후 2000개 요청)"
     return SyncState { headersCompleted = False }
