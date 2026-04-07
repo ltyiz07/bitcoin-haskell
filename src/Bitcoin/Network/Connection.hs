@@ -18,7 +18,7 @@ import Data.Serialize.Get        (runGetPartial, Result(..))
 import qualified Data.ByteString as BS
 import Data.IORef                (IORef, newIORef, readIORef, writeIORef)
 import Control.Exception         (bracket, catch, SomeException)
-import Control.Monad.Except      (ExceptT(..), throwError, runExceptT )
+import Control.Monad.Except      (ExceptT(..), runExceptT )
 
 
 data ConnectionError
@@ -29,12 +29,9 @@ data ConnectionError
 
 data NodeConnection = NodeConnection Socket (IORef BS.ByteString)
 
--- 수신 버퍼 크기 (bytes)
 recvBufferSize :: Int
 recvBufferSize = 32768
 
--- | 소켓을 열고 버퍼를 초기화한 뒤 안전하게 닫아주는 함수.
--- 연결 실패 시 예외를 던지는 대신 Left ConnectFailed 를 반환합니다.
 withConnection :: SockAddr
                -> (NodeConnection -> ExceptT ConnectionError IO a)
                -> ExceptT ConnectionError IO a

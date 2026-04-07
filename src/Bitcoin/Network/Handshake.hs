@@ -3,6 +3,8 @@
 module Bitcoin.Network.Handshake
     ( HandshakeError(..)
     , performHandshake
+    , liftConnectionException
+    , liftHandshakeException 
     ) where
 
 import Data.Word                       (Word64)
@@ -11,36 +13,35 @@ import qualified Data.ByteString.Char8 as BS8
 import Data.Time.Clock.POSIX           (getPOSIXTime)
 import System.Random                   (randomIO)
 import System.Timeout                  (timeout)
-import Control.Monad.Except            (ExceptT(..), runExceptT)
+import Control.Monad.Except            (ExceptT(..), runExceptT, throwError)
+import Control.Monad.IO.Class          (liftIO)
+import Data.Serialize                  (Serialize(..), runGet)
 
 import Bitcoin.Network.Message
-import Bitcoin.Network.Connection      (NodeConnection, ConnectionError, sendMessage, recvMessage)
+import Bitcoin.Network.Connection      (NodeConnection, ConnectionError(..), sendMessage, recvMessage)
 
 
 data HandshakeError
-    = HandshakeTimeout                    -- 제한 시간 내에 핸드셰이크 미완료
-    | HandshakeConnError ConnectionError  -- 하위 연결 레이어 에러
-    | HandshakeFailed    String           -- 예상치 못한 프로토콜 위반
+    = HandshakeTimeout
+    | HandshakeConnError ConnectionError
+    | HandshakeFailed    String
     deriving (Show, Eq)
 
 data HandshakeState = HandshakeState
-    { hsGotVersion :: Bool  -- 상대방의 version 메시지 수신 여부
-    , hsGotVerAck  :: Bool  -- 상대방의 verack 메시지 수신 여부
+    { hsVersion :: Maybe VersionMessage  -- 상대방의 version 메시지 객체
+    , hsGotVerack  :: Bool               -- 상대방의 verack 메시지 수신 여부
     } deriving (Show)
 
 initialState :: HandshakeState
-initialState = HandshakeState { hsGotVersion = False, hsGotVerAck = False }
+initialState = HandshakeState { hsVersion = Nothing, hsGotVerack = False }
 
-isComplete :: HandshakeState -> Bool
-isComplete (HandshakeState True True) = True
-isComplete _                          = False
-
--- | 핸드셰이크 타임아웃 (마이크로초, 10초)
+-- | 핸드셰이크 타임아웃 10초 (마이크로초)
 handshakeTimeoutUs :: Int
 handshakeTimeoutUs = 10 * 1_000_000
 
-performHandshake :: NodeConnection -> ExceptT HandshakeError IO ()
+performHandshake :: NodeConnection -> ExceptT HandshakeError IO VersionMessage
 performHandshake conn = ExceptT $ do
+    liftIO $ putStrLn "[Handshake] 양방향 핸드셰이크 시도"
     result <- timeout handshakeTimeoutUs $ runExceptT doHandshake
     case result of
         Nothing -> do
@@ -49,45 +50,36 @@ performHandshake conn = ExceptT $ do
         Just r  ->
             return r
   where
-    doHandshake :: ExceptT HandshakeError IO ()
+    doHandshake :: ExceptT HandshakeError IO VersionMessage
     doHandshake = do
         sendVersion conn
-        loop conn initialState
+        handshakeLoop conn initialState
 
-loop :: NodeConnection -> HandshakeState -> ExceptT HandshakeError IO ()
-loop conn state
-    | isComplete state =
-        liftIO $ putStrLn "[Handshake] 🎉 양방향 핸드셰이크 완료!"
-    | otherwise = do
-        msg <- liftConn $ recvMessage conn
-        let cmd = BS8.unpack $ unCommand (msgCommand msg)
-        liftIO $ putStrLn $ "[Handshake] 수신: " ++ cmd
-        nextState <- handleCmd conn cmd msg state
-        loop conn nextState
-
--- | 수신 명령어에 따라 응답을 보내고 상태를 갱신합니다.
-handleCmd
-    :: NodeConnection
-    -> String
-    -> Message
-    -> HandshakeState
-    -> ExceptT HandshakeError IO HandshakeState
-handleCmd conn "version" _   st = do
-    liftConn $ sendMessage conn (Message (Command "verack") BS.empty)
-    liftIO $ putStrLn "[Handshake] 전송: verack"
-    return st { hsGotVersion = True }
-
-handleCmd _    "verack"  _   st =
-    return st { hsGotVerAck = True }
-
-handleCmd conn "ping"    msg st = do
-    liftConn $ sendMessage conn (Message (Command "pong") (msgPayload msg))
-    liftIO $ putStrLn "[Handshake] 전송: pong"
-    return st
-
-handleCmd _    other     _   st = do
-    liftIO $ putStrLn $ "[Handshake] 무시됨: " ++ other
-    return st
+handshakeLoop :: NodeConnection -> HandshakeState -> ExceptT HandshakeError IO VersionMessage
+handshakeLoop _ (HandshakeState (Just peerVer) True) = do
+    liftIO $ putStrLn "[Handshake] 양방향 핸드셰이크 완료"
+    return peerVer
+handshakeLoop conn handshakeSate = do
+    msg <- liftConnectionException $ recvMessage conn
+    let cmd = BS8.unpack $ unCommand (msgCommand msg)
+    newHandshakeSate <- case cmd of
+        "version" -> do
+            case runGet get (msgPayload msg) of
+                Left err ->
+                    throwError $ HandshakeFailed $ "version 파싱 실패: " ++ err
+                Right peerVer -> do
+                    liftConnectionException $ sendMessage conn (Message (Command "verack") BS.empty)
+                    return handshakeSate { hsVersion = Just peerVer }
+        "verack" -> do
+            return handshakeSate { hsGotVerack = True }
+        "ping" -> do
+            liftIO $ putStrLn "[Handshake] 수신: ping -> 전송: pong"
+            liftConnectionException $ sendMessage conn (Message (Command "pong") (msgPayload msg))
+            return handshakeSate
+        prematureCmd -> do
+            liftIO $ putStrLn $ "[Handshake] 무시됨: " ++ prematureCmd
+            return handshakeSate
+    handshakeLoop conn newHandshakeSate
 
 sendVersion :: NodeConnection -> ExceptT HandshakeError IO ()
 sendVersion conn = do
@@ -105,11 +97,16 @@ sendVersion conn = do
             , verStartHeight = 0
             , verRelay       = False
             }
-    liftConn $ sendMessage conn (Message (Command "version") (buildVersionPayload myVer))
-    liftIO $ putStrLn "[Handshake] 전송: version"
+    liftConnectionException $ sendMessage conn (Message (Command "version") (buildVersionPayload myVer))
 
-liftConn :: ExceptT ConnectionError IO a -> ExceptT HandshakeError IO a
-liftConn = ExceptT . fmap (either (Left . HandshakeConnError) Right) . runExceptT
+-- lift exception
+liftConnectionException :: ExceptT ConnectionError IO a -> ExceptT HandshakeError IO a
+liftConnectionException = ExceptT . fmap (either (Left . HandshakeConnError) Right) . runExceptT
 
-liftIO :: IO a -> ExceptT HandshakeError IO a
-liftIO = ExceptT . fmap Right
+liftHandshakeException :: ExceptT HandshakeError IO a -> ExceptT ConnectionError IO a
+liftHandshakeException = ExceptT . fmap (either (Left . toConnError) Right) . runExceptT
+  where
+    toConnError HandshakeTimeout          = ConnectFailed "핸드셰이크 타임아웃"
+    toConnError (HandshakeConnError e)    = e
+    toConnError (HandshakeFailed reason)  = ConnectFailed ("핸드셰이크 실패: " ++ reason)
+

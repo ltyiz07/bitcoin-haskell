@@ -54,7 +54,7 @@ library
                     , network ^>= 3.2
                     , time ^>= 1.12
                     , random ^>= 1.2
-                    , mtl ^>= 2.3
+                    , mtl ^>= 2.3.1
 
     hs-source-dirs:   src
     default-language: GHC2024
