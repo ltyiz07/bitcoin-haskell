@@ -41,8 +41,8 @@ withConnection addr action = ExceptT $ do
             SockAddrInet {}  -> AF_INET
             SockAddrInet6 {} -> AF_INET6
             _                -> AF_INET
-    bracket (socket family Stream defaultProtocol) close $ \sock ->
-        (do
+    (bracket (socket family Stream defaultProtocol) close $ \sock ->
+        do
             connect sock addr
             putStrLn "[Connection] TCP 연결 성공"
             bufferRef <- newIORef BS.empty
