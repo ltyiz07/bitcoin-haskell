@@ -14,6 +14,7 @@ import Data.Serialize
     )
 
 import Bitcoin.VarInt (VarInt(..))
+import Bitcoin.Network.Message.Payload.MessagePayload (MessagePayload(..))
 
 -- | GetHeaders 메시지의 페이로드 구조체
 -- 동기화를 위해 현재 노드가 알고 있는 최신 블록 해시들(locators)을 상대방에게 알려주고,
@@ -41,3 +42,6 @@ instance Serialize GetHeaders where
         locs <- replicateM (fromIntegral count) (getByteString 32)
         stop <- getByteString 32
         return $ GetHeaders ver locs stop
+
+instance MessagePayload GetHeaders where
+    getCommand _ = "getheaders"

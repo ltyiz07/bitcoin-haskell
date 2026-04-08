@@ -15,8 +15,11 @@ import Control.Monad.Except            (ExceptT(..), runExceptT, throwError)
 import Control.Monad.IO.Class          (liftIO)
 import Data.Serialize                  (Serialize(..), runGet, runPut)
 
+import Bitcoin.Network.Message
 import Bitcoin.Network.Message.Header
 import Bitcoin.Network.Message.Payload.Version
+import Bitcoin.Network.Message.Payload.PingPong
+import Bitcoin.Network.Message.Payload.VerAck
 import Bitcoin.Network.Connection      (NodeConnection, ConnectionError(..), sendMessage, recvMessage)
 
 
@@ -58,26 +61,27 @@ handshakeLoop :: NodeConnection -> HandshakeState -> ExceptT HandshakeError IO V
 handshakeLoop _ (HandshakeState (Just peerVer) True) = do
     liftIO $ putStrLn "[Handshake] 양방향 핸드셰이크 완료"
     return peerVer
-handshakeLoop conn handshakeSate = do
-    msg :: Message   <- liftConnectionException $ recvMessage conn
-    newHandshakeSate <- case BS8.unpack msg.header.command of
+handshakeLoop conn hsState = do
+    msg :: Message <- liftConnectionException $ recvMessage conn
+    newHsState     <- case BS8.unpack msg.header.command of
         "version"    -> do
             case runGet get msg.payload of
                 Left err      -> do
                     throwError $ HandshakeFailed $ "version 파싱 실패: " ++ err
                 Right peerVer -> do
-                    liftConnectionException $ sendMessage conn (buildMainnetMessage "verack" ())
-                    return handshakeSate { hsVersion = Just peerVer }
+                    liftConnectionException $ sendMessage conn (buildMainnetMessage VerAck)
+                    return hsState { hsVersion = Just peerVer }
         "verack"     -> do
-            return handshakeSate { hsGotVerack = True }
+            return hsState { hsGotVerack = True }
         "ping"       -> do
             liftIO $ putStrLn "[Handshake] 수신: ping -> 전송: pong"
-            liftConnectionException $ sendMessage conn (buildMainnetMessage "pong" msg.payload)
-            return handshakeSate
+            let payload = Pong { nonce = msg.payload }
+            liftConnectionException $ sendMessage conn (buildMainnetMessage payload)
+            return hsState
         prematureCmd -> do
             liftIO $ putStrLn $ "[Handshake] 무시됨: " ++ prematureCmd
-            return handshakeSate
-    handshakeLoop conn newHandshakeSate
+            return hsState
+    handshakeLoop conn newHsState
 
 sendVersion :: NodeConnection -> ExceptT HandshakeError IO ()
 sendVersion conn = do
@@ -95,7 +99,7 @@ sendVersion conn = do
             , startHeight = 0
             , relay       = False
             }
-    liftConnectionException $ sendMessage conn (buildMainnetMessage "version" myVer)
+    liftConnectionException $ sendMessage conn (buildMainnetMessage myVer)
 
 -- lift exception
 liftConnectionException :: ExceptT ConnectionError IO a -> ExceptT HandshakeError IO a

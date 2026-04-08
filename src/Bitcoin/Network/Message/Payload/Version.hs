@@ -18,10 +18,10 @@ import Data.Serialize
     , getWord32le
     , getWord64le
     , getByteString
-    , runPut
     )
 
 import Bitcoin.VarInt (VarInt(..))
+import Bitcoin.Network.Message.Payload.MessagePayload (MessagePayload(..))
 
 
 data IPAddress = IPAddress 
@@ -85,3 +85,6 @@ instance Serialize Version where
         sh    <- getWord32le
         relay <- (== 1) <$> getWord8
         return $ Version ver srv ts recv from nonce ua sh relay
+
+instance MessagePayload Version where
+    getCommand _ = "version"

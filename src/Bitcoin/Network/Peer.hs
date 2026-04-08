@@ -12,9 +12,11 @@ import Control.Monad.IO.Class          (liftIO)
 import Bitcoin.Network.Message.Payload.Version
 import Bitcoin.Network.Message.Payload.GetHeaders
 import Bitcoin.Network.Message.Header
+import Bitcoin.Network.Message
 import Bitcoin.Network.Connection
     ( NodeConnection, ConnectionError(..), withConnection, sendMessage, recvMessage)
 import Bitcoin.Network.Handshake       (performHandshake, liftHandshakeException)
+import Bitcoin.Network.Message.Payload.PingPong
 import Data.ByteString (ByteString)
 
 
@@ -47,19 +49,18 @@ handleMessageLoop :: NodeConnection -> SyncState -> ExceptT ConnectionError IO (
 handleMessageLoop _ (SyncState True) = do
     liftIO $ putStrLn "[Peer] 완료 상태 확인"
 handleMessageLoop conn syncState = do
-    msg <- (recvMessage conn :: ExceptT ConnectionError IO Message)
-    let cmd = BS8.unpack msg.header.command
-    newSyncState <- case cmd of
-        "ping" -> do
+    msg :: Message <- recvMessage conn
+    newSyncState   <- case BS8.unpack msg.header.command of
+        "ping"         -> do
             liftIO $ putStrLn "[Peer] 수신: ping -> 전송: pong"
-            sendMessage conn (buildMainnetMessage "pong" msg.payload)
+            sendMessage conn (buildMainnetMessage (Pong msg.payload))
             return syncState 
-        "headers" -> do
+        "headers"      -> do
             let payload = msg.payload
             liftIO $ do
                 putStrLn $ "[Peer] 📦 블록 헤더 수신! (" ++ show (BS.length payload) ++ " bytes)"
             return syncState { headersCompleted = False }
-        otherCmd -> do
+        otherCmd       -> do
             liftIO $ putStrLn $ "[Peer] 수신 (무시됨): " ++ otherCmd
             return syncState 
     handleMessageLoop conn newSyncState 
@@ -71,7 +72,7 @@ sendGetHeaders conn = do
             , locators = [genesisHashLE]
             , hashStop = BS.replicate 32 0
             }
-        msg = buildMainnetMessage "getheaders" payload
+        msg = buildMainnetMessage payload
     sendMessage conn msg
     liftIO $ putStrLn "[Peer] 🚀 전송: getheaders (제네시스 블록 이후 2000개 요청)"
     return SyncState { headersCompleted = False }

@@ -29,9 +29,14 @@ library
                     , Bitcoin.Keys.WIF
                     , Bitcoin.Transaction
                     , Bitcoin.Network.Discovery
+                    , Bitcoin.Network.Message
                     , Bitcoin.Network.Message.Header
+                    , Bitcoin.Network.Message.NetworkMagic
                     , Bitcoin.Network.Message.Payload.Version
                     , Bitcoin.Network.Message.Payload.GetHeaders
+                    , Bitcoin.Network.Message.Payload.MessagePayload
+                    , Bitcoin.Network.Message.Payload.PingPong
+                    , Bitcoin.Network.Message.Payload.VerAck
                     , Bitcoin.Network.Connection
                     , Bitcoin.Network.Handshake
                     , Bitcoin.Network.Peer

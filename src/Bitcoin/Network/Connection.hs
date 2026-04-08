@@ -20,6 +20,8 @@ import Data.IORef                (IORef, newIORef, readIORef, writeIORef)
 import Control.Exception         (bracket, catch, SomeException)
 import Control.Monad.Except      (ExceptT(..), runExceptT )
 
+import Bitcoin.Network.Message.NetworkMagic (Network(..), magicBytes)
+
 
 data ConnectionError
     = ConnectFailed   String  -- TCP 연결 자체 실패
