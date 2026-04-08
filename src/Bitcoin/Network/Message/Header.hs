@@ -1,11 +1,8 @@
-{-# LANGUAGE OverloadedStrings #-}
-{-# LANGUAGE OverloadedRecordDot #-}
-
 module Bitcoin.Network.Message.Header
     ( Message(..)
-    , Command(..)
     , MessageHeader(..)
     , Network(..)
+    , buildMainnetMessage 
     ) where
 
 import Control.Monad (unless)
@@ -21,6 +18,7 @@ import Data.Serialize
     , getWord32le
     , putByteString
     , getByteString 
+    , runPut
     )
 
 import Utils.Hash ( hash256 )
@@ -35,33 +33,21 @@ magicBytes Testnet3 = 0x0b110907
 magicBytes Regtest  = 0xfabfb5da
 magicBytes Signet   = 0x0a03cf40
 
-magicNetwork :: Word32 -> Either String Network
-magicNetwork 0xf9beb4d9 = Right Mainnet
-magicNetwork 0x0b110907 = Right Testnet3
-magicNetwork 0xfabfb5da = Right Regtest
-magicNetwork 0x0a03cf40 = Right Signet
-magicNetwork unknown    = Left $ "알 수 없는 매직 바이트: " ++ show unknown
-
 instance Serialize Network where
     put = putWord32be . magicBytes
     get = do
         magic <- getWord32be
-        either fail return (magicNetwork magic)
-
-newtype Command = Command { unCommand :: BS.ByteString }
-    deriving (Show, Eq)
-
-instance Serialize Command where
-    put (Command cmd) = putByteString $ BS.take 12 (cmd <> BS.replicate 12 0)
-    get = do
-        bs <- getByteString 12
-        return $ Command $ BS.takeWhile (/= 0) bs
+        case magic of
+            0xf9beb4d9 -> return Mainnet
+            0x0b110907 -> return Testnet3
+            0xfabfb5da -> return Regtest
+            0x0a03cf40 -> return Signet
+            unknown    -> fail $ "알 수 없는 매직 바이트: " ++ show unknown
 
 data MessageHeader = MessageHeader
     { network :: Network
-    , command :: Command
+    , command :: BS.ByteString
     } deriving (Show, Eq)
-
 
 data Message = Message
     { header :: MessageHeader
@@ -71,14 +57,15 @@ data Message = Message
 instance Serialize Message where
     put msg = do
         put msg.header.network
-        put msg.header.command
+        putByteString $ BS.take 12 (msg.header.command <> BS.replicate 12 0)
         putWord32le $ fromIntegral (BS.length msg.payload)
         let checksum = BS.take 4 (hash256 msg.payload)
         putByteString checksum
         putByteString msg.payload
     get = do
         net <- get
-        cmd <- get
+        rawCmd <- getByteString 12
+        let cmd = BS.takeWhile (/= 0) rawCmd
         len <- getWord32le
         chk <- getByteString 4
         payload <- getByteString (fromIntegral len)
@@ -86,3 +73,6 @@ instance Serialize Message where
         unless (chk == expectedChk) $
             fail "Invalid checksum in message header"
         return $ Message (MessageHeader net cmd) payload
+
+buildMainnetMessage :: Serialize a => BS.ByteString -> a -> Message
+buildMainnetMessage cmd msg = Message (MessageHeader Mainnet cmd) (runPut . put $ msg)

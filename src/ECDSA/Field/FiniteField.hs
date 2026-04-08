@@ -1,7 +1,3 @@
-{-# LANGUAGE DataKinds #-}
-{-# LANGUAGE KindSignatures #-}
-{-# LANGUAGE TypeApplications #-}
-
 module ECDSA.Field.FiniteField
     ( FiniteField(..)
     ) where

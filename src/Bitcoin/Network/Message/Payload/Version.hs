@@ -1,9 +1,5 @@
-{-# LANGUAGE OverloadedStrings #-}
-{-# LANGUAGE OverloadedRecordDot #-}
-
 module Bitcoin.Network.Message.Payload.Version
     ( Version(..)
-    , buildVersionPayload 
     , NetworkAddress(..)
     , IPAddress(..)
     ) where
@@ -37,7 +33,6 @@ instance Serialize IPAddress where
     put (IPAddress host port) = do
         putByteString $ BS.take 16 (host <> BS.replicate 16 0)
         putWord16be port
-        
     get = do
         host <- getByteString 16
         port <- getWord16be
@@ -53,8 +48,6 @@ instance Serialize NetworkAddress where
         putWord64le (addrServices addr)
         put (addrIp addr)
     get = NetworkAddress <$> getWord64le <*> get
-
-
 
 data Version = Version
     { version     :: Word32
@@ -76,11 +69,10 @@ instance Serialize Version where
         put ver.addrRecv 
         put ver.addrFrom
         putWord64le ver.nonce
-        put $ VarInt (fromIntegral $ BS.length $ ver.userAgent)
+        put $ VarInt (fromIntegral $ BS.length ver.userAgent)
         putByteString ver.userAgent
         putWord32le ver.startHeight
         putWord8 (if ver.relay then 1 else 0)
-
     get = do
         ver   <- getWord32le
         srv   <- getWord64le
@@ -93,6 +85,3 @@ instance Serialize Version where
         sh    <- getWord32le
         relay <- (== 1) <$> getWord8
         return $ Version ver srv ts recv from nonce ua sh relay
-
-buildVersionPayload :: Version -> BS.ByteString
-buildVersionPayload = runPut . put
