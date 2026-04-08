@@ -105,7 +105,9 @@ test-suite impl-btc-test
                     , Bitcoin.Network.BlockSpec
 
     -- LANGUAGE extensions used by modules in this package.
-    -- other-extensions:
+    other-extensions:   OverloadedStrings
+                      , OverloadedRecordDot
+
     type:             exitcode-stdio-1.0
     hs-source-dirs:   test
     main-is:          Main.hs

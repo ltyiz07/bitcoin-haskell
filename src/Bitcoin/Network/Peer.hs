@@ -85,6 +85,7 @@ requestMessages conn = do
     return SyncState { headersCompleted = False, pingPong = False }
 
 -- | 제네시스 블록 해시 (little-endian 직렬화)
+-- block-heigth of 0
 genesisHashLE :: BS.ByteString
 genesisHashLE = BS.pack $
     [ 0x6f, 0xe2, 0x8c, 0x0a, 0xb6, 0xf1, 0xb3, 0x72
