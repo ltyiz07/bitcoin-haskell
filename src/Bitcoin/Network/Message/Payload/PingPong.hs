@@ -1,37 +1,35 @@
 module Bitcoin.Network.Message.Payload.PingPong
-    ( Pong(..)
+    ( Ping(..)
+    , Pong(..)
     ) where
 
-import Data.Word (Word64)
 import Data.ByteString as BS
 import Data.Serialize
     ( Serialize(..)
-    , getWord64le
-    , putWord64le, putByteString, getByteString
+    , putByteString
+    , getByteString
     )
 
 import Bitcoin.Network.Message.Payload.MessagePayload (MessagePayload(..))
 
 
-{-
-data Ping = Ping
-    { nonce :: Word64
+newtype Ping = Ping
+    { pingNonce :: BS.ByteString
     } deriving (Show, Eq)
 
 instance Serialize Ping where
-    put p = putWord64le p.nonce
-    get   = Ping <$> getWord64le
+    put p = putByteString p.pingNonce
+    get   = Ping <$> getByteString 8
 
 instance MessagePayload Ping where
     getCommand _ = "ping"
-    -}
 
-data Pong = Pong
-    { nonce :: BS.ByteString
+newtype Pong = Pong
+    { pongNonce :: BS.ByteString
     } deriving (Show, Eq)
 
 instance Serialize Pong where
-    put p = putByteString p.nonce
+    put p = putByteString p.pongNonce
     get   = Pong <$> getByteString 8
 
 instance MessagePayload Pong where

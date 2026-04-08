@@ -6,6 +6,7 @@ import Data.Serialize (Serialize(..))
 
 import Bitcoin.Network.Message.Payload.MessagePayload (MessagePayload(..))
 
+
 data VerAck = VerAck deriving (Show, Eq)
 
 instance Serialize VerAck where

@@ -9,8 +9,14 @@ module Bitcoin.Network.Connection
     ) where
 
 import Network.Socket
-    ( Socket, SockAddr(..), Family(AF_INET, AF_INET6)
-    , SocketType(Stream), socket, connect, close, defaultProtocol
+    ( Socket
+    , SockAddr(..)
+    , Family(AF_INET, AF_INET6)
+    , SocketType(Stream)
+    , socket
+    , connect
+    , close
+    , defaultProtocol
     )
 import Network.Socket.ByteString (recv, sendAll)
 import Data.Serialize            (Serialize, put, get, runPut)
@@ -19,8 +25,6 @@ import qualified Data.ByteString as BS
 import Data.IORef                (IORef, newIORef, readIORef, writeIORef)
 import Control.Exception         (bracket, catch, SomeException)
 import Control.Monad.Except      (ExceptT(..), runExceptT )
-
-import Bitcoin.Network.Message.NetworkMagic (Network(..), magicBytes)
 
 
 data ConnectionError
@@ -43,14 +47,14 @@ withConnection addr action = ExceptT $ do
             SockAddrInet {}  -> AF_INET
             SockAddrInet6 {} -> AF_INET6
             _                -> AF_INET
-    (bracket (socket family Stream defaultProtocol) close $ \sock ->
+    bracket (socket family Stream defaultProtocol) close $ \sock ->
         do
             connect sock addr
             putStrLn "[Connection] TCP 연결 성공"
             bufferRef <- newIORef BS.empty
             runExceptT $ action (NodeConnection sock bufferRef)
-        ) `catch` \(e :: SomeException) ->
-            return $ Left $ ConnectFailed (show e)
+    `catch` \(e :: SomeException) ->
+        return $ Left $ ConnectFailed (show e)
 
 sendMessage :: Serialize a => NodeConnection -> a -> ExceptT ConnectionError IO ()
 sendMessage (NodeConnection sock _) msg = ExceptT $
@@ -74,3 +78,4 @@ recvMessage (NodeConnection sock bufferRef) = ExceptT $ do
         Done msg rest -> do
             writeIORef bufferRef rest
             return $ Right msg
+

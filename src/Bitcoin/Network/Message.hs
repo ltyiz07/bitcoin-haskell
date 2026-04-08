@@ -1,15 +1,21 @@
 module Bitcoin.Network.Message
     ( Message(..)
     , buildMainnetMessage
+    , parseHeader
+    , parsePayload 
+    , module Bitcoin.Network.Message.NetworkMagic
+    , module Bitcoin.Network.Message.Header
+    , module Bitcoin.Network.Message.Payload.GetHeaders
+    , module Bitcoin.Network.Message.Payload.Version
+    , module Bitcoin.Network.Message.Payload.VerAck
+    , module Bitcoin.Network.Message.Payload.PingPong
+    , module Bitcoin.Network.Message.Payload.Headers
     ) where
 
 import Control.Monad (unless)
 import Data.ByteString as BS
-import Data.Word (Word64)
 import Data.Serialize
     ( Serialize(..)
-    , putWord32be
-    , getWord32be
     , putWord32le
     , getWord32le
     , putByteString
@@ -19,10 +25,14 @@ import Data.Serialize
 
 import Utils.Hash ( hash256 )
 import Bitcoin.Network.Message.Payload.MessagePayload (MessagePayload(..))
-import Bitcoin.Network.Message.Header (MessageHeader(..))
-import Bitcoin.Network.Message.Payload.Version (Version(..))
-import Bitcoin.Network.Message.NetworkMagic (Network(..))
-import Bitcoin.Network.Message.Payload.GetHeaders (GetHeaders (..))
+
+import Bitcoin.Network.Message.NetworkMagic
+import Bitcoin.Network.Message.Header
+import Bitcoin.Network.Message.Payload.Version
+import Bitcoin.Network.Message.Payload.VerAck
+import Bitcoin.Network.Message.Payload.PingPong
+import Bitcoin.Network.Message.Payload.GetHeaders
+import Bitcoin.Network.Message.Payload.Headers
 
 
 data Message = Message 
@@ -58,5 +68,3 @@ parseHeader = undefined
 parsePayload :: MessagePayload a => Message -> a
 parsePayload = undefined 
 
--- buildMainnetMessage :: Serialize a => BS.ByteString -> a -> Message
--- buildMainnetMessage cmd msg = Message (MessageHeader Mainnet cmd) (runPut . put $ msg)

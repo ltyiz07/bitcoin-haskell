@@ -30,13 +30,6 @@ library
                     , Bitcoin.Transaction
                     , Bitcoin.Network.Discovery
                     , Bitcoin.Network.Message
-                    , Bitcoin.Network.Message.Header
-                    , Bitcoin.Network.Message.NetworkMagic
-                    , Bitcoin.Network.Message.Payload.Version
-                    , Bitcoin.Network.Message.Payload.GetHeaders
-                    , Bitcoin.Network.Message.Payload.MessagePayload
-                    , Bitcoin.Network.Message.Payload.PingPong
-                    , Bitcoin.Network.Message.Payload.VerAck
                     , Bitcoin.Network.Connection
                     , Bitcoin.Network.Handshake
                     , Bitcoin.Network.Peer
@@ -49,6 +42,14 @@ library
 
     other-modules:    Utils.Base58
                     , Bitcoin.VarInt
+                    , Bitcoin.Network.Message.Header
+                    , Bitcoin.Network.Message.NetworkMagic
+                    , Bitcoin.Network.Message.Payload.Version
+                    , Bitcoin.Network.Message.Payload.GetHeaders
+                    , Bitcoin.Network.Message.Payload.MessagePayload
+                    , Bitcoin.Network.Message.Payload.PingPong
+                    , Bitcoin.Network.Message.Payload.VerAck
+                    , Bitcoin.Network.Message.Payload.Headers
 
     build-depends:    base ^>=4.21.0.0
                     , text ^>= 2.1.1
@@ -101,6 +102,7 @@ test-suite impl-btc-test
                     , Bitcoin.TransactionSpec
                     , Bitcoin.Network.DiscoverySpec
                     , Bitcoin.Network.ConnectionSpec
+                    , Bitcoin.Network.BlockSpec
 
     -- LANGUAGE extensions used by modules in this package.
     -- other-extensions:

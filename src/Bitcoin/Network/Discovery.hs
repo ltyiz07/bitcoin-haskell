@@ -21,8 +21,7 @@ import Data.List (nub)
 showSockAddr :: SockAddr -> String
 showSockAddr = showSockAddr
 
--- | 비트코인 코어에 하드코딩된 메인넷 DNS 시드 목록입니다.
--- 이 주소들로 쿼리를 보내면 현재 동작 중인 노드들의 IP를 반환합니다.
+-- 비트코인 코어에 하드코딩된 메인넷 DNS 시드 목록입니다.
 defaultDnsSeeds :: [(HostName,  ServiceName)]
 defaultDnsSeeds =
     [ ("seed.bitcoin.sipa.be", "8333")
@@ -45,7 +44,6 @@ getPeerIPs seedHost port = do
     return addrs
 
   where
-    -- DNS 쿼리 실패 시 프로그램이 종료되지 않고 빈 배열을 반환하도록 처리
     handleError :: SomeException -> IO [AddrInfo]
     handleError err = do
         putStrLn $ "[Discovery] DNS 쿼리 실패 (" ++ seedHost ++ ":" ++ port ++ "): " ++ show err

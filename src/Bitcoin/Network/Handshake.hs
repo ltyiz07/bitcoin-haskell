@@ -13,13 +13,9 @@ import System.Random                   (randomIO)
 import System.Timeout                  (timeout)
 import Control.Monad.Except            (ExceptT(..), runExceptT, throwError)
 import Control.Monad.IO.Class          (liftIO)
-import Data.Serialize                  (Serialize(..), runGet, runPut)
+import Data.Serialize                  (Serialize(..), runGet)
 
 import Bitcoin.Network.Message
-import Bitcoin.Network.Message.Header
-import Bitcoin.Network.Message.Payload.Version
-import Bitcoin.Network.Message.Payload.PingPong
-import Bitcoin.Network.Message.Payload.VerAck
 import Bitcoin.Network.Connection      (NodeConnection, ConnectionError(..), sendMessage, recvMessage)
 
 
@@ -75,7 +71,7 @@ handshakeLoop conn hsState = do
             return hsState { hsGotVerack = True }
         "ping"       -> do
             liftIO $ putStrLn "[Handshake] 수신: ping -> 전송: pong"
-            let payload = Pong { nonce = msg.payload }
+            let payload = Pong { pongNonce = msg.payload }
             liftConnectionException $ sendMessage conn (buildMainnetMessage payload)
             return hsState
         prematureCmd -> do
@@ -89,15 +85,15 @@ sendVersion conn = do
     nonce <- liftIO (randomIO :: IO Word64)
     let emptyAddr = NetworkAddress 0 (IPAddress (BS.replicate 16 0x00) 0)
         myVer     = Version
-            { version     = 70015
-            , services    = 0
-            , timestamp   = now
-            , addrRecv    = emptyAddr
-            , addrFrom    = emptyAddr
-            , nonce       = nonce
-            , userAgent   = "/ProgrammingBitcoin:0.1/"
-            , startHeight = 0
-            , relay       = False
+            { versionVersion     = 70015
+            , versionServices    = 0
+            , versionTimestamp   = now
+            , versionAddrRecv    = emptyAddr
+            , versionAddrFrom    = emptyAddr
+            , versionNonce       = nonce
+            , versionUserAgent   = "/ProgrammingBitcoin:0.1/"
+            , versionStartHeight = 0
+            , versionRelay       = False
             }
     liftConnectionException $ sendMessage conn (buildMainnetMessage myVer)
 

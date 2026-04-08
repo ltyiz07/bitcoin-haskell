@@ -1,6 +1,5 @@
 module Bitcoin.Network.Message.NetworkMagic
     ( Network(..)
-    , magicBytes
     ) where
 
 import Data.Word ( Word32 )

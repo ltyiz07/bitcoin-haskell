@@ -50,29 +50,29 @@ instance Serialize NetworkAddress where
     get = NetworkAddress <$> getWord64le <*> get
 
 data Version = Version
-    { version     :: Word32
-    , services    :: Word64
-    , timestamp   :: Word64
-    , addrRecv    :: NetworkAddress
-    , addrFrom    :: NetworkAddress
-    , nonce       :: Word64
-    , userAgent   :: BS.ByteString
-    , startHeight :: Word32
-    , relay       :: Bool
+    { versionVersion     :: Word32
+    , versionServices    :: Word64
+    , versionTimestamp   :: Word64
+    , versionAddrRecv    :: NetworkAddress
+    , versionAddrFrom    :: NetworkAddress
+    , versionNonce       :: Word64
+    , versionUserAgent   :: BS.ByteString
+    , versionStartHeight :: Word32
+    , versionRelay       :: Bool
     } deriving (Show, Eq)
 
 instance Serialize Version where
     put ver = do
-        putWord32le ver.version
-        putWord64le ver.services
-        putWord64le ver.timestamp
-        put ver.addrRecv 
-        put ver.addrFrom
-        putWord64le ver.nonce
-        put $ VarInt (fromIntegral $ BS.length ver.userAgent)
-        putByteString ver.userAgent
-        putWord32le ver.startHeight
-        putWord8 (if ver.relay then 1 else 0)
+        putWord32le ver.versionVersion
+        putWord64le ver.versionServices
+        putWord64le ver.versionTimestamp
+        put ver.versionAddrRecv 
+        put ver.versionAddrFrom
+        putWord64le ver.versionNonce
+        put $ VarInt (fromIntegral $ BS.length ver.versionUserAgent)
+        putByteString ver.versionUserAgent
+        putWord32le ver.versionStartHeight
+        putWord8 (if ver.versionRelay then 1 else 0)
     get = do
         ver   <- getWord32le
         srv   <- getWord64le

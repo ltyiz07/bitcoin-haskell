@@ -3,21 +3,17 @@ module Bitcoin.Network.Peer
     ) where
 
 import Network.Socket                  (SockAddr)
-import Data.Serialize                  (runPut, putWord32le, putWord8, putByteString)
 import qualified Data.ByteString       as BS
 import qualified Data.ByteString.Char8 as BS8
 import Control.Monad.Except            (ExceptT(..), runExceptT)
 import Control.Monad.IO.Class          (liftIO)
+import Data.Serialize                  (runGet, get)
 
-import Bitcoin.Network.Message.Payload.Version
-import Bitcoin.Network.Message.Payload.GetHeaders
-import Bitcoin.Network.Message.Header
 import Bitcoin.Network.Message
 import Bitcoin.Network.Connection
     ( NodeConnection, ConnectionError(..), withConnection, sendMessage, recvMessage)
-import Bitcoin.Network.Handshake       (performHandshake, liftHandshakeException)
-import Bitcoin.Network.Message.Payload.PingPong
-import Data.ByteString (ByteString)
+import Bitcoin.Network.Handshake
+    ( performHandshake, liftHandshakeException )
 
 
 runPeer :: SockAddr -> IO ()
@@ -32,21 +28,21 @@ peerSession conn = do
     peerVersion <- liftHandshakeException $ performHandshake conn
     liftIO $ do
         putStrLn $ "[Peer] Peer version"
-        putStrLn $ "  ├─ 프로토콜:   " ++ show peerVersion.version
-        putStrLn $ "  ├─ 서비스:     " ++ show peerVersion.services
-        putStrLn $ "  ├─ 클라이언트: " ++ BS8.unpack peerVersion.userAgent
-        putStrLn $ "  └─ 블록 높이:  " ++ show peerVersion.startHeight
-    initialSyncState <- sendGetHeaders conn
+        putStrLn $ "  ├─ 프로토콜:   " ++ show peerVersion.versionVersion
+        putStrLn $ "  ├─ 서비스:     " ++ show peerVersion.versionServices
+        putStrLn $ "  ├─ 클라이언트: " ++ show peerVersion.versionUserAgent
+        putStrLn $ "  └─ 블록 높이:  " ++ show peerVersion.versionStartHeight
+    initialSyncState <- requestMessages conn
     handleMessageLoop conn initialSyncState 
 
--- data SyncState = SyncState
-newtype SyncState = SyncState
+data SyncState = SyncState
     { headersCompleted :: Bool
+    , pingPong         :: Bool
     } deriving (Eq, Show)
 
 -- 새 명령어를 추가할 때 이 함수만 수정하면 됩니다.
 handleMessageLoop :: NodeConnection -> SyncState -> ExceptT ConnectionError IO ()
-handleMessageLoop _ (SyncState True) = do
+handleMessageLoop _ (SyncState True True) = do
     liftIO $ putStrLn "[Peer] 완료 상태 확인"
 handleMessageLoop conn syncState = do
     msg :: Message <- recvMessage conn
@@ -54,28 +50,39 @@ handleMessageLoop conn syncState = do
         "ping"         -> do
             liftIO $ putStrLn "[Peer] 수신: ping -> 전송: pong"
             sendMessage conn (buildMainnetMessage (Pong msg.payload))
-            return syncState 
+            return syncState { pingPong = True }
         "headers"      -> do
-            let payload = msg.payload
+            let payloadBS = msg.payload
+            headersSyncState <- case runGet get msg.payload of
+                Left err -> do
+                    liftIO $ putStrLn $ "[Peer] 블록헤더 파싱 실패: " ++ err
+                    return syncState
+                Right (blockHeaders :: Headers) -> do
+                    liftIO $ do
+                        putStrLn $ "[Peer] 수신: headers (파싱 성공!)"
+                        putStrLn $ "  ├─ Payload size:   " ++ show (BS.length msg.payload) ++ " bytes"
+                        putStrLn $ "  └─ Headers count:  " ++ show (length blockHeaders.headersList)
+                    return syncState { headersCompleted = True }
             liftIO $ do
-                putStrLn $ "[Peer] 📦 블록 헤더 수신! (" ++ show (BS.length payload) ++ " bytes)"
-            return syncState { headersCompleted = False }
+                putStrLn $ "[Peer] 수신: headers"
+                putStrLn $ "  ├─ Payload size (bytes):      " ++ show (BS.length payloadBS)
+            return headersSyncState
         otherCmd       -> do
             liftIO $ putStrLn $ "[Peer] 수신 (무시됨): " ++ otherCmd
             return syncState 
     handleMessageLoop conn newSyncState 
 
-sendGetHeaders :: NodeConnection -> ExceptT ConnectionError IO SyncState
-sendGetHeaders conn = do
+requestMessages :: NodeConnection -> ExceptT ConnectionError IO SyncState
+requestMessages conn = do
     let payload = GetHeaders
-            { version = 70015
-            , locators = [genesisHashLE]
-            , hashStop = BS.replicate 32 0
+            { getHeadersVersion = 70015
+            , getHeadersLocators = [genesisHashLE]
+            , getHeadersHashStop = BS.replicate 32 0
             }
         msg = buildMainnetMessage payload
     sendMessage conn msg
-    liftIO $ putStrLn "[Peer] 🚀 전송: getheaders (제네시스 블록 이후 2000개 요청)"
-    return SyncState { headersCompleted = False }
+    liftIO $ putStrLn "[Peer] 전송: getheaders (제네시스 블록 이후 2000개 요청)"
+    return SyncState { headersCompleted = False, pingPong = False }
 
 -- | 제네시스 블록 해시 (little-endian 직렬화)
 genesisHashLE :: BS.ByteString
@@ -85,5 +92,4 @@ genesisHashLE = BS.pack $
     , 0x93, 0x1e, 0x83, 0x65, 0xe1, 0x5a, 0x08, 0x9c
     , 0x68, 0xd6, 0x19, 0x00, 0x00, 0x00, 0x00, 0x00
     ]
-
 
