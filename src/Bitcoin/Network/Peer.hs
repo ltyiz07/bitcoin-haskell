@@ -14,14 +14,10 @@ import Bitcoin.Network.Connection
     ( NodeConnection, ConnectionError(..), withConnection, sendMessage, recvMessage)
 import Bitcoin.Network.Handshake
     ( performHandshake, liftHandshakeException )
-
-data SyncState = SyncState
-    { headersCompleted :: Bool
-    , pingPong         :: Bool
-    } deriving (Eq, Show)
+import Utils.Hash ( hash256 )
+import Utils.Hex ( bytesToHex )
 
 
--- StateT와 ExceptT를 결합한 커스텀 모나드 타입 정의
 type PeerM = ST.StateT SyncState (ExceptT ConnectionError IO)
 
 runPeer :: SockAddr -> IO ()
@@ -39,28 +35,42 @@ peerSession conn = do
         putStrLn $ "  ├─ 프로토콜:   " ++ show peerVersion.versionVersion
         putStrLn $ "  ├─ 서비스:     " ++ show peerVersion.versionServices
         putStrLn $ "  ├─ 클라이언트: " ++ show peerVersion.versionUserAgent
+        putStrLn $ "  ├─ recv:       " ++ show peerVersion.versionAddrRecv
+        putStrLn $ "  ├─ frmo:       " ++ show peerVersion.versionAddrFrom
         putStrLn $ "  └─ 블록 높이:  " ++ show peerVersion.versionStartHeight
     
-    sendGetHeaders conn
-    let initialSyncState = SyncState False False
-    -- StateT 환경 실행 (초기 상태 주입)
+    sendGetHeaders conn genesisHashLE 
+    -- SyncState initial
+    let initialSyncState = SyncState
+            { lastHeaderHash = genesisHashLE 
+            , peerBlockHeight = fromIntegral peerVersion.versionStartHeight
+            , currentHeaderCount = 0
+            , bhResBytesFilename = "data/blockheaders_20260409_01.dat"
+            }
     ST.evalStateT (peerLoop conn) initialSyncState
 
--- 루프 자체에서는 상태를 명시적으로 인자로 받지 않음
+data SyncState = SyncState
+    { lastHeaderHash     :: BS.ByteString
+    , peerBlockHeight    :: Int
+    , currentHeaderCount :: Int
+    , bhResBytesFilename :: String
+    } deriving (Eq, Show)
+
 peerLoop :: NodeConnection -> PeerM ()
 peerLoop conn = do
-    currentState <- ST.get
-    if currentState == SyncState True True
+    -- SyncState completed (finish)
+    isCompleted <- ST.gets (\s -> s.peerBlockHeight == s.currentHeaderCount)
+    syncState <- ST.get
+    liftIO $ print syncState 
+    if isCompleted 
         then do
             liftIO $ putStrLn "[Peer] 완료 상태 확인 (모든 작업 완료)"
-    -- ExceptT 계층의 네트워크 수신 연산을 lift로 끌어옴
         else do
             msg :: Message <- ST.lift $ recvMessage conn
             case msg.header.command of
                 "ping"    -> handlePing conn msg.payload
-                "headers" -> handleHeaders msg.payload
+                "headers" -> handleHeaders conn msg.payload
                 otherCmd  -> liftIO $ putStrLn $ "[Peer] 수신 (무시됨): " ++ BS8.unpack otherCmd
-            -- 상태가 업데이트된 채로 다음 루프 실행
             peerLoop conn
 
 -- -------------------------------------------------------------------------
@@ -71,18 +81,27 @@ handlePing :: NodeConnection -> BS.ByteString -> PeerM ()
 handlePing conn payload = do
     liftIO $ putStrLn "[Peer] 수신: ping -> 전송: pong"
     ST.lift $ sendMessage conn (buildMainnetMessage (Pong payload))
-    -- pingPong 상태를 True로 덮어쓰기
-    ST.modify' (\s -> s { pingPong = True })
 
-handleHeaders :: BS.ByteString -> PeerM ()
-handleHeaders payload = do
+handleHeaders :: NodeConnection -> BS.ByteString -> PeerM ()
+handleHeaders conn payload = do
     blockHeaders :: Headers <- parseOrFail payload
     liftIO $ do
         putStrLn $ "[Peer] 수신: headers (파싱 성공!)"
         putStrLn $ "  ├─ Payload size:   " ++ show (BS.length payload) ++ " bytes"
         putStrLn $ "  └─ Headers count:  " ++ show (length blockHeaders.headersList)
-    -- headersCompleted 상태를 True로 덮어쓰기
-    ST.modify' (\s -> s { headersCompleted = True })
+    syncState <- ST.get
+    if syncState.currentHeaderCount == 0
+        then liftIO $ BS.writeFile syncState.bhResBytesFilename (runPut . SR.put $ blockHeaders)
+        else liftIO $ BS.appendFile syncState.bhResBytesFilename (runPut . SR.put $ blockHeaders)
+    let recvedLastHeaderHash = getBlockHeaderHash (last blockHeaders.headersList)
+    ST.modify' (\s -> s
+        { currentHeaderCount = s.currentHeaderCount + length blockHeaders.headersList
+        , lastHeaderHash = recvedLastHeaderHash
+        })
+    ST.lift $ sendGetHeaders conn recvedLastHeaderHash
+  where
+    getBlockHeaderHash :: BlockHeader -> BS.ByteString
+    getBlockHeaderHash = hash256 . BS.take 80 . runPut . SR.put
 
 -- -------------------------------------------------------------------------
 -- 유틸리티 함수
@@ -94,11 +113,11 @@ parseOrFail payload = case SR.runGet SR.get payload of
     Right parsedData -> 
         return parsedData
 
-sendGetHeaders :: NodeConnection -> ExceptT ConnectionError IO ()
-sendGetHeaders conn = do
+sendGetHeaders :: NodeConnection -> BS.ByteString -> ExceptT ConnectionError IO ()
+sendGetHeaders conn lastHeaderHash = do
     let payload = GetHeaders
             { getHeadersVersion = 70015
-            , getHeadersLocators = [genesisHashLE]
+            , getHeadersLocators = [lastHeaderHash]
             , getHeadersHashStop = BS.replicate 32 0
             }
         msg = buildMainnetMessage payload
