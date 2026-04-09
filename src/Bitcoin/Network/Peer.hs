@@ -1,5 +1,6 @@
 module Bitcoin.Network.Peer
     ( runPeer
+    , genesisHashLE
     ) where
 
 import Network.Socket                  (SockAddr)
@@ -15,7 +16,6 @@ import Bitcoin.Network.Connection
 import Bitcoin.Network.Handshake
     ( performHandshake, liftHandshakeException )
 import Utils.Hash ( hash256 )
-import Utils.Hex ( bytesToHex )
 
 
 type PeerM = ST.StateT SyncState (ExceptT ConnectionError IO)
