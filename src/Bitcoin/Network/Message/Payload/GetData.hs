@@ -24,6 +24,8 @@ data InvType
     | MsgBlock          -- ^ 2: 전체 블록
     | MsgFilteredBlock  -- ^ 3: SPV용 필터링된 블록 (BIP37)
     | MsgCmpctBlock     -- ^ 4: 압축 블록 (BIP152)
+    | MsgWitnessTx      -- ^ 0x40000001 (SegWit 트랜잭션)
+    | MsgWitnessBlock   -- ^ 0x40000002 (SegWit 블록)
     | UnknownInvType Word32
     deriving (Show, Eq)
 
@@ -32,6 +34,8 @@ invTypeToWord32 MsgTx            = 1
 invTypeToWord32 MsgBlock         = 2
 invTypeToWord32 MsgFilteredBlock = 3
 invTypeToWord32 MsgCmpctBlock    = 4
+invTypeToWord32 MsgWitnessTx     = 0x40000001
+invTypeToWord32 MsgWitnessBlock  = 0x40000002
 invTypeToWord32 (UnknownInvType n) = n
 
 word32ToInvType :: Word32 -> InvType
@@ -39,6 +43,8 @@ word32ToInvType 1 = MsgTx
 word32ToInvType 2 = MsgBlock
 word32ToInvType 3 = MsgFilteredBlock
 word32ToInvType 4 = MsgCmpctBlock
+word32ToInvType 0x40000001 = MsgWitnessTx
+word32ToInvType 0x40000002 = MsgWitnessBlock
 word32ToInvType n = UnknownInvType n
 
 -- | 특정 데이터의 고유 식별자

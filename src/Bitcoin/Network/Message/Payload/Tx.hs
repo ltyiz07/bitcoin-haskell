@@ -156,7 +156,7 @@ getSegWit ver = do
         getByteString (fromIntegral len)
 
 isSegWit :: Tx -> Bool
-isSegWit = not . null . txWitness
+isSegWit tx = not (all Prelude.null tx.txWitness)
 
 putVarList :: Serialize a => [a] -> Put
 putVarList xs = do

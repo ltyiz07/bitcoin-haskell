@@ -60,7 +60,7 @@ peerSession conn = do
             { phase              = SyncBlocks (getTargetBlockHashes 830000 830004) 0
             , peerBlockHeight    = fromIntegral peerVersion.versionStartHeight
             , bhResBytesFilename = "data/blockheaders.dat"
-            , blockResFilename   = "data/blocks_930000_to_930004.dat"
+            , blockResFilename   = "data/blocks_930000_to_930004_wit.dat"
             }
     ST.evalStateT (peerLoop conn) initialState
 
@@ -190,7 +190,7 @@ sendGetHeaders conn fromHash = do
 
 sendGetData :: NodeConnection -> BS.ByteString -> ExceptT ConnectionError IO ()
 sendGetData conn targetHash = do
-    let inv = InvVector { invType = MsgBlock, invHash = targetHash }
+    let inv = InvVector { invType = MsgWitnessBlock, invHash = targetHash }
         msg = buildMainnetMessage (GetData [inv])
     sendMessage conn msg
     liftIO $ putStrLn $ "[Peer] 전송: getdata (block: " ++ bytesToHex targetHash ++ ")"
