@@ -8,7 +8,6 @@ import qualified Data.ByteString    as BS
 import qualified Data.ByteString.Char8 as BS8
 import Control.Monad.Except         (ExceptT(..), runExceptT, throwError)
 import Control.Monad.State          as ST
-import Control.Monad.IO.Class       (liftIO)  -- [버그 2] 명시적 import 추가
 import Data.Serialize               as SR
 
 import Bitcoin.Network.Message

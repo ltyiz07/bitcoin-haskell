@@ -50,6 +50,9 @@ library
                     , Bitcoin.Network.Message.Payload.PingPong
                     , Bitcoin.Network.Message.Payload.VerAck
                     , Bitcoin.Network.Message.Payload.Headers
+                    , Bitcoin.Network.Message.Payload.GetData
+                    , Bitcoin.Network.Message.Payload.Tx
+                    , Bitcoin.Network.Message.Payload.Block
 
     build-depends:    base ^>=4.21.0.0
                     , text ^>= 2.1.1

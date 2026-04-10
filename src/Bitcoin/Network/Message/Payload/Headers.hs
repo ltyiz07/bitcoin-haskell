@@ -35,7 +35,6 @@ instance Serialize BlockHeader where
         putWord32le  bh.bhTimestamp
         putWord32le  bh.bhBits
         putWord32le  bh.bhNonce
-        put $ VarInt 0
     get = do
         ver   <- getWord32le
         prev  <- getByteString 32
@@ -43,7 +42,6 @@ instance Serialize BlockHeader where
         time  <- getWord32le
         bits  <- getWord32le
         nonce <- getWord32le
-        _ :: VarInt <- get
         return $ BlockHeader ver prev root time bits nonce
 
 newtype Headers = Headers
@@ -53,10 +51,15 @@ newtype Headers = Headers
 instance Serialize Headers where
     put hs = do
         put $ VarInt (fromIntegral $ length hs.headersList)
-        forM_ hs.headersList put
+        forM_ hs.headersList $ \h -> do
+            put h
+            put $ VarInt 0 -- headers 메시지에만 붙는 tx_count = 0
     get = do
         VarInt count <- get
-        hdrs <- replicateM (fromIntegral count) get
+        hdrs <- replicateM (fromIntegral count) $ do
+            h <- get
+            _ :: VarInt <- get -- 여기서 0을 읽어서 버림
+            return h
         return $ Headers hdrs
 
 instance MessagePayload Headers where
