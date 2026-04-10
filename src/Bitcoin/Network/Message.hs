@@ -11,7 +11,9 @@ module Bitcoin.Network.Message
     , module Bitcoin.Network.Message.Payload.PingPong
     , module Bitcoin.Network.Message.Payload.Headers
     , module Bitcoin.Network.Message.Payload.GetData
+    , module Bitcoin.Network.Message.Payload.InvType
     , module Bitcoin.Network.Message.Payload.Tx
+    , module Bitcoin.Network.Message.Payload.Inv
     , module Bitcoin.Network.Message.Payload.Block
     ) where
 
@@ -37,7 +39,9 @@ import Bitcoin.Network.Message.Payload.PingPong
 import Bitcoin.Network.Message.Payload.GetHeaders
 import Bitcoin.Network.Message.Payload.Headers
 import Bitcoin.Network.Message.Payload.GetData
+import Bitcoin.Network.Message.Payload.InvType
 import Bitcoin.Network.Message.Payload.Tx
+import Bitcoin.Network.Message.Payload.Inv
 import Bitcoin.Network.Message.Payload.Block
 
 

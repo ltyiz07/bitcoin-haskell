@@ -51,7 +51,9 @@ library
                     , Bitcoin.Network.Message.Payload.VerAck
                     , Bitcoin.Network.Message.Payload.Headers
                     , Bitcoin.Network.Message.Payload.GetData
+                    , Bitcoin.Network.Message.Payload.InvType
                     , Bitcoin.Network.Message.Payload.Tx
+                    , Bitcoin.Network.Message.Payload.Inv
                     , Bitcoin.Network.Message.Payload.Block
 
     build-depends:    base ^>=4.21.0.0

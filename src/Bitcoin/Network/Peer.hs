@@ -3,9 +3,9 @@ module Bitcoin.Network.Peer
     , genesisHashLE
     ) where
 
-import Network.Socket               (SockAddr, getNonBlock)
+import Network.Socket               (SockAddr)
 import qualified Data.ByteString    as BS
-import qualified Data.ByteString.Char8 as BS8
+import Control.Monad                (when)
 import Control.Monad.Except         (ExceptT(..), runExceptT, throwError)
 import Control.Monad.State          as ST
 import Data.Serialize               as SR
@@ -57,7 +57,7 @@ peerSession conn = do
         putStrLn $ "  ├─ 클라이언트: " ++ show peerVersion.versionUserAgent
         putStrLn $ "  └─ 블록 높이:  " ++ show peerVersion.versionStartHeight
     let initialState = SyncState
-            { phase              = SyncBlocks (getTargetBlockHashes 830000 830004) 0
+            { phase              = SyncBlocks (getTargetBlockHashes 930000 930004) 0
             , peerBlockHeight    = fromIntegral peerVersion.versionStartHeight
             , bhResBytesFilename = "data/blockheaders.dat"
             , blockResFilename   = "data/blocks_930000_to_930004_wit.dat"
@@ -102,6 +102,7 @@ dispatchLoop conn = do
         "ping"    -> handlePing conn msg.payload >> dispatchLoop conn
         "headers" -> handleHeaders msg.payload   >> peerLoop conn
         "block"   -> handleBlock msg.payload     >> peerLoop conn
+        "inv"     -> handleInv msg.payload       >> dispatchLoop conn
         otherCmd  -> do
             liftIO $ putStrLn $ "[Peer] 무시: " ++ show otherCmd
             dispatchLoop conn
@@ -125,13 +126,8 @@ handleHeaders payload = do
     syncState <- ST.get
 
     case syncState.phase of
-        Completed _ ->
-            -- dispatchLoop 구조상 도달하지 않지만 방어 코드로 유지
-            liftIO $ putStrLn "[Peer] 완료 상태에서 headers 수신 (무시)"
-
         SyncHeaders _ oldCount -> do
             let totalCount = oldCount + newCount
-                -- 두 조건 중 하나라도 참이면 체인 끝에 도달
                 isChainEnd = newCount < 2000 || totalCount >= syncState.peerBlockHeight
 
             liftIO $ do
@@ -153,6 +149,8 @@ handleHeaders payload = do
                             then Completed totalCount
                             else SyncHeaders (blockHeaderHash (last blockHeaders.headersList)) totalCount
                 }
+        _ -> liftIO $ putStrLn "[Peer] 예상치 못한 메시지 수신 -- Unreachable"
+
 
 handleBlock :: BS.ByteString -> PeerM ()
 handleBlock payload = do
@@ -166,13 +164,26 @@ handleBlock payload = do
                 putStrLn $ "  ├─ 트랜잭션 수: " ++ show (length block.blockTxs)
                 putStrLn $ "  └─ 크기:        " ++ show (BS.length payload) ++ " bytes"
             
-            -- 블록 데이터를 파일에 그대로 추가 (이어쓰기)
-            liftIO $ BS.appendFile syncState.blockResFilename payload
+            if downloadedCount == 0
+                then liftIO $ BS.writeFile syncState.blockResFilename payload
+                else liftIO $ BS.appendFile syncState.blockResFilename payload
             
-            -- 남은 블록 해시 큐로 상태 업데이트
             ST.modify' $ \s -> s { phase = SyncBlocks rest (downloadedCount + 1) }
             
-        _ -> liftIO $ putStrLn "[Peer] 예상치 못한 block 메시지 수신"
+        _ -> liftIO $ putStrLn "[Peer] 예상치 못한 메시지 수신 -- Unreachable"
+
+handleInv :: BS.ByteString -> PeerM ()
+handleInv payload = do
+    invMsg :: Inv <- parseOrFail payload
+    let count = length invMsg.inventory
+    liftIO $ do
+        putStrLn "[Peer] 수신: inv"
+        putStrLn $ "  ├─ 아이템 개수: " ++ show count
+        putStrLn $ "  └─ 크기:        " ++ show (BS.length payload) ++ " bytes"
+        -- 내용물이 있다면 어떤 종류의 데이터를 광고하는지 첫 번째 항목만 출력
+        when (count > 0) $ do
+            let firstItem = head invMsg.inventory
+            putStrLn $ "     (첫 번째 항목: " ++ show firstItem.invType ++ " - " ++ bytesToHex firstItem.invHash ++ ")"
 
 -- ---------------------------------------------------------------------------
 -- 유틸리티
