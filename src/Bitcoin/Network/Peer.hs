@@ -25,6 +25,7 @@ data SyncPhase
     = SyncHeaders BS.ByteString Int
     | SyncBlocks [BS.ByteString] Int
     | Completed Int
+    | Listening
     deriving (Eq, Show)
 
 -- | SyncPhase 외 변하지 않는 설정값만 남겼습니다.
@@ -57,7 +58,8 @@ peerSession conn = do
         putStrLn $ "  ├─ 클라이언트: " ++ show peerVersion.versionUserAgent
         putStrLn $ "  └─ 블록 높이:  " ++ show peerVersion.versionStartHeight
     let initialState = SyncState
-            { phase              = SyncBlocks (getTargetBlockHashes 930000 930004) 0
+            -- { phase              = SyncBlocks (getTargetBlockHashes 930000 930004) 0
+            { phase              = Listening
             , peerBlockHeight    = fromIntegral peerVersion.versionStartHeight
             , bhResBytesFilename = "data/blockheaders.dat"
             , blockResFilename   = "data/blocks_930000_to_930004_wit.dat"
@@ -91,6 +93,9 @@ peerLoop conn = do
             ST.lift $ sendGetData conn targetHash
             dispatchLoop conn
 
+        Listening -> do
+            liftIO $ putStrLn "[Peer] 🎧 리스닝 모드 진입 (네트워크 메시지 대기 중...)"
+            dispatchLoop conn
 
 -- | headers 응답이 올 때까지 메시지를 처리합니다.
 -- ping 등 유지 메시지는 처리 후 계속 대기하고,
