@@ -52,15 +52,14 @@
     - [x] Support SegWit transaction format (marker & witness data)
 
 - [ ] Block Serialization
-  - [ ] Define data types (`BlockHeader`, `Block`)
+  - [x] Define data `BlockHeader` types
+  - [ ] Define data `Block` types
   - [ ] Implement Merkle Root calculation
-  - [ ] Implement `Binary` instance for `BlockHeader`
-  - [ ] Implement `Binary` instance for `Block`
 
 - [ ] Networking (P2P)
-  - [ ] Define network message data types (`MessageHeader`, etc.)
-  - [ ] Implement `Binary` instance for `MessageHeader`
-  - [ ] Implement handshake logic (`version`, `verack`)
+  - [x] Define network message data types (`MessageHeader`, etc.)
+  - [x] Implement `Binary` instance for `MessageHeader`
+  - [x] Implement handshake logic (`version`, `verack`)
   - [ ] Implement data exchange logic (`inv`, `getdata`, `tx`, `block`)
 
 - [ ] Advanced Features
