@@ -3,7 +3,7 @@ module Bitcoin.Network.Peer
     , genesisHashLE
     ) where
 
-import Network.Socket               (SockAddr)
+import Network.Socket               (SockAddr, getNonBlock)
 import qualified Data.ByteString    as BS
 import qualified Data.ByteString.Char8 as BS8
 import Control.Monad.Except         (ExceptT(..), runExceptT, throwError)
@@ -15,18 +15,16 @@ import Bitcoin.Network.Connection
     ( NodeConnection, ConnectionError(..), withConnection, sendMessage, recvMessage )
 import Bitcoin.Network.Handshake    ( performHandshake, liftHandshakeException )
 import Utils.Hash                   ( hash256 )
-import Utils.Hex                    ( bytesToHex )
+import Utils.Hex                    ( bytesToHex, hexToBytes )
 
 -- ---------------------------------------------------------------------------
 -- 타입
 -- ---------------------------------------------------------------------------
 
--- | 동기화 단계와 단계별 데이터를 하나의 타입으로 표현합니다.
--- 각 생성자가 필요한 데이터만 들고 있으므로
--- SyncState 에 분산된 파생 필드(requestHeaders, isCompleted)가 불필요합니다.
 data SyncPhase
-    = Syncing BS.ByteString Int -- ^ (마지막으로 받은 블록 해시, 누적 수신 개수)
-    | Completed Int             -- ^ (최종 수신 개수) — 모든 헤더 수신 완료
+    = SyncHeaders BS.ByteString Int
+    | SyncBlocks [BS.ByteString] Int
+    | Completed Int
     deriving (Eq, Show)
 
 -- | SyncPhase 외 변하지 않는 설정값만 남겼습니다.
@@ -34,6 +32,7 @@ data SyncState = SyncState
     { phase              :: SyncPhase
     , peerBlockHeight    :: Int
     , bhResBytesFilename :: String
+    , blockResFilename   :: String
     } deriving (Eq, Show)
 
 type PeerM = ST.StateT SyncState (ExceptT ConnectionError IO)
@@ -58,9 +57,10 @@ peerSession conn = do
         putStrLn $ "  ├─ 클라이언트: " ++ show peerVersion.versionUserAgent
         putStrLn $ "  └─ 블록 높이:  " ++ show peerVersion.versionStartHeight
     let initialState = SyncState
-            { phase              = Syncing genesisHashLE 0
+            { phase              = SyncBlocks (getTargetBlockHashes 830000 830004) 0
             , peerBlockHeight    = fromIntegral peerVersion.versionStartHeight
             , bhResBytesFilename = "data/blockheaders.dat"
+            , blockResFilename   = "data/blocks_930000_to_930004.dat"
             }
     ST.evalStateT (peerLoop conn) initialState
 
@@ -80,9 +80,17 @@ peerLoop conn = do
             liftIO $ putStrLn $
                 "[Peer] ✅ 동기화 완료 (총 " ++ show total ++ "개)"
 
-        Syncing lastHash _ -> do
+        SyncHeaders lastHash _ -> do
             ST.lift $ sendGetHeaders conn lastHash
             dispatchLoop conn
+
+        SyncBlocks [] downloadedCount -> do
+            ST.modify' $ \s -> s { phase = Completed downloadedCount }
+            peerLoop conn
+        SyncBlocks (targetHash : _) _ -> do
+            ST.lift $ sendGetData conn targetHash
+            dispatchLoop conn
+
 
 -- | headers 응답이 올 때까지 메시지를 처리합니다.
 -- ping 등 유지 메시지는 처리 후 계속 대기하고,
@@ -90,11 +98,12 @@ peerLoop conn = do
 dispatchLoop :: NodeConnection -> PeerM ()
 dispatchLoop conn = do
     msg :: Message <- ST.lift $ recvMessage conn
-    case BS8.unpack msg.header.command of
+    case msg.header.command of
         "ping"    -> handlePing conn msg.payload >> dispatchLoop conn
         "headers" -> handleHeaders msg.payload   >> peerLoop conn
+        "block"   -> handleBlock msg.payload     >> peerLoop conn
         otherCmd  -> do
-            liftIO $ putStrLn $ "[Peer] 무시: " ++ otherCmd
+            liftIO $ putStrLn $ "[Peer] 무시: " ++ show otherCmd
             dispatchLoop conn
 
 -- ---------------------------------------------------------------------------
@@ -120,7 +129,7 @@ handleHeaders payload = do
             -- dispatchLoop 구조상 도달하지 않지만 방어 코드로 유지
             liftIO $ putStrLn "[Peer] 완료 상태에서 headers 수신 (무시)"
 
-        Syncing _ oldCount -> do
+        SyncHeaders _ oldCount -> do
             let totalCount = oldCount + newCount
                 -- 두 조건 중 하나라도 참이면 체인 끝에 도달
                 isChainEnd = newCount < 2000 || totalCount >= syncState.peerBlockHeight
@@ -142,8 +151,28 @@ handleHeaders payload = do
             ST.modify' $ \s -> s
                 { phase = if isChainEnd
                             then Completed totalCount
-                            else Syncing (blockHeaderHash (last blockHeaders.headersList)) totalCount
+                            else SyncHeaders (blockHeaderHash (last blockHeaders.headersList)) totalCount
                 }
+
+handleBlock :: BS.ByteString -> PeerM ()
+handleBlock payload = do
+    block :: Block <- parseOrFail payload
+    syncState <- ST.get
+    
+    case syncState.phase of
+        SyncBlocks (currentHash : rest) downloadedCount -> do
+            liftIO $ do
+                putStrLn $ "[Peer] 수신: block (" ++ bytesToHex currentHash ++ ")"
+                putStrLn $ "  ├─ 트랜잭션 수: " ++ show (length block.blockTxs)
+                putStrLn $ "  └─ 크기:        " ++ show (BS.length payload) ++ " bytes"
+            
+            -- 블록 데이터를 파일에 그대로 추가 (이어쓰기)
+            liftIO $ BS.appendFile syncState.blockResFilename payload
+            
+            -- 남은 블록 해시 큐로 상태 업데이트
+            ST.modify' $ \s -> s { phase = SyncBlocks rest (downloadedCount + 1) }
+            
+        _ -> liftIO $ putStrLn "[Peer] 예상치 못한 block 메시지 수신"
 
 -- ---------------------------------------------------------------------------
 -- 유틸리티
@@ -159,15 +188,18 @@ sendGetHeaders conn fromHash = do
     sendMessage conn msg
     liftIO $ putStrLn $ "[Peer] 전송: getheaders (from: " ++ bytesToHex fromHash ++ ")"
 
--- [버그 1] 수정: ST.lift 를 통해 ExceptT 레이어로 명시적으로 전달
+sendGetData :: NodeConnection -> BS.ByteString -> ExceptT ConnectionError IO ()
+sendGetData conn targetHash = do
+    let inv = InvVector { invType = MsgBlock, invHash = targetHash }
+        msg = buildMainnetMessage (GetData [inv])
+    sendMessage conn msg
+    liftIO $ putStrLn $ "[Peer] 전송: getdata (block: " ++ bytesToHex targetHash ++ ")"
+
 parseOrFail :: SR.Serialize a => BS.ByteString -> PeerM a
 parseOrFail bs = case SR.runGet SR.get bs of
     Left  err -> ST.lift $ throwError $ ParseError $ "파싱 실패: " ++ err
     Right val -> return val
 
--- | 블록 헤더의 해시를 계산합니다.
--- 비트코인 헤더는 80바이트이며, Headers 메시지의 BlockHeader 는
--- 80바이트 헤더 + tx count(1바이트)로 직렬화되므로 앞 80바이트만 해싱합니다.
 blockHeaderHash :: BlockHeader -> BS.ByteString
 blockHeaderHash = hash256 . BS.take 80 . runPut . SR.put
 
@@ -177,4 +209,14 @@ genesisHashLE = BS.pack
     , 0xc1, 0xa6, 0xa2, 0x46, 0xae, 0x63, 0xf7, 0x4f
     , 0x93, 0x1e, 0x83, 0x65, 0xe1, 0x5a, 0x08, 0x9c
     , 0x68, 0xd6, 0x19, 0x00, 0x00, 0x00, 0x00, 0x00
+    ]
+
+-- TODO: implement method properly
+getTargetBlockHashes :: Integer -> Integer -> [BS.ByteString]
+getTargetBlockHashes _from _to = map (BS.reverse . hexToBytes)
+    [ "00000000000000000000df0f80044130bb616de91fb0a1d61f27cdcf20458233" -- 930000
+    , "00000000000000000001d8d7d2a2f0cbb5b5fc689486df2c49532cfee8942604" -- 930001
+    , "00000000000000000000078b3ac20f1bf14ec4512bedf71ef41365e168967a14" -- 930002
+    , "000000000000000000017627bb4c4b6de783f24a39621093878d50f5fb75a080" -- 930003
+    , "00000000000000000001710e4f1b98e7bd77f1d5ca4874cf7b869403f10c9d1f" -- 930004
     ]
