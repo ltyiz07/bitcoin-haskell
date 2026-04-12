@@ -72,6 +72,12 @@
 - `cabal build` 명령으로 전체 프로젝트가 성공적으로 컴파일되는지 확인.
 - `cabal test` 명령으로 모든 테스트가 통과하는지 확인.
 
+### Verify test
+```
+cabal test --test-options="--match \"Verify bitcoin block\""
+```
+
+
 ## Module add sequence
 
 1. Add source-code file

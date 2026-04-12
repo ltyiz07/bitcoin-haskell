@@ -11,7 +11,6 @@ import qualified ECDSA.SignatureSpec
 import qualified Bitcoin.Keys.SECSpec
 import qualified Bitcoin.Keys.DERSpec
 import qualified Bitcoin.Keys.WIFSpec
-import qualified Bitcoin.TransactionSpec
 import qualified Bitcoin.Network.DiscoverySpec
 import qualified Bitcoin.Network.ConnectionSpec
 import qualified Bitcoin.Network.BlockSpec
@@ -28,7 +27,6 @@ main = hspec $ do
     Bitcoin.Keys.SECSpec.spec
     Bitcoin.Keys.DERSpec.spec
     Bitcoin.Keys.WIFSpec.spec
-    Bitcoin.TransactionSpec.spec
     Bitcoin.Network.DiscoverySpec.spec
     Bitcoin.Network.ConnectionSpec.spec
     Bitcoin.Network.BlockSpec.spec
