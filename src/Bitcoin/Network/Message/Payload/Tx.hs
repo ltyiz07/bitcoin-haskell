@@ -4,6 +4,8 @@ module Bitcoin.Network.Message.Payload.Tx
     , TxOut(..)
     , OutPoint(..)
     , Hash32(..)
+    , txId
+    , wtxId
     ) where
 
 import qualified Data.ByteString as BS
@@ -178,6 +180,7 @@ wtxId :: Tx -> Hash32
 wtxId tx
     | isCoinbase tx = Hash32 (BS.replicate 32 0x00)
     | otherwise     = Hash32 . hash256 . runPut . put $ tx
+
 isCoinbase :: Tx -> Bool
 isCoinbase tx = case tx.txInputs of
     [TxIn (OutPoint h idx) _ _] ->
