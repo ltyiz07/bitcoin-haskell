@@ -75,7 +75,7 @@
 ### Verify test
 ```
 cabal test --test-options="--match \"Verify bitcoin block\""
-cabal test --test-options="--match \"Verify bitcoin block\""
+cabal test --test-options="--match \"Verify bitcoin block\" +RTS -s -RTS"
 ```
 
 
