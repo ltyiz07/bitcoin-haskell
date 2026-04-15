@@ -57,18 +57,18 @@ library
                     , Bitcoin.Network.Message.Payload.Inv
                     , Bitcoin.Network.Message.Payload.Block
 
-    build-depends:    base ^>=4.21.0.0
-                    , text ^>= 2.1.1
-                    , bytestring ^>= 0.11.4
-                    , crypton ^>= 1.0
-                    , base16-bytestring ^>= 1.0
-                    , memory ^>= 0.18
-                    , cereal ^>= 0.5
-                    , base58-bytestring ^>= 0.1
-                    , network ^>= 3.2
-                    , time ^>= 1.12
-                    , random ^>= 1.2
-                    , mtl ^>= 2.3.1
+    build-depends:    base
+                    , text
+                    , bytestring
+                    , crypton
+                    , base16-bytestring
+                    , memory
+                    , cereal
+                    , base58-bytestring
+                    , network
+                    , time
+                    , random
+                    , mtl
 
     hs-source-dirs:   src
     default-language: GHC2024
@@ -88,7 +88,7 @@ executable impl-btc
     -- other-modules:
     -- LANGUAGE extensions used by modules in this package.
     -- other-extensions:
-    build-depends:    base ^>=4.21.0.0
+    build-depends:    base
                     , impl-btc
     hs-source-dirs:   app
     default-language: GHC2024
@@ -116,11 +116,11 @@ test-suite impl-btc-test
     type:             exitcode-stdio-1.0
     hs-source-dirs:   test
     main-is:          Main.hs
-    build-depends:    base ^>=4.21.0.0
+    build-depends:    base
                     , impl-btc
-                    , hspec ^>=2.11
-                    , QuickCheck ^>=2.14
-                    , text ^>= 2.1.1
-                    , bytestring ^>= 0.11.4
-                    , base16-bytestring ^>= 1.0
-                    , cereal ^>= 0.5
+                    , hspec
+                    , QuickCheck
+                    , text
+                    , bytestring
+                    , base16-bytestring
+                    , cereal

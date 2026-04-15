@@ -30,6 +30,7 @@
         };
       in
       {
+        packages.default = project;
         devShells.default = project.env.overrideAttrs (oldAttrs: {
           buildInputs = oldAttrs.buildInputs ++ [
             haskellPackages.cabal-install
