@@ -51,20 +51,26 @@
     - [x] Support legacy transaction format
     - [x] Support SegWit transaction format (marker & witness data)
 
-- [ ] Block Serialization
+- [x] Block Serialization
   - [x] Define data `BlockHeader` types
-  - [ ] Define data `Block` types
-  - [ ] Implement Merkle Root calculation
+  - [x] Define data `Block` types
+  - [x] Implement Merkle Root calculation
 
-- [ ] Networking (P2P)
+- [x] Networking (P2P)
   - [x] Define network message data types (`MessageHeader`, etc.)
   - [x] Implement `Binary` instance for `MessageHeader`
   - [x] Implement handshake logic (`version`, `verack`)
-  - [ ] Implement data exchange logic (`inv`, `getdata`, `tx`, `block`)
+  - [x] Implement data exchange logic (`inv`, `getdata`, `tx`, `block`)
 
 - [ ] Advanced Features
   - [ ] Implement full Script evaluation engine
   - [ ] Support Taproot (Schnorr signatures, P2TR outputs)
+
+- [ ] Validation logics
+  - [ ] Validate block
+    - [x] Block difficuly using Bits field
+    - [x] Merkel root
+    - [ ] Witness commitment
 
 
 ## How to test code

@@ -6,6 +6,8 @@ module Bitcoin.Network.Message.Payload.Tx
     , Hash32(..)
     , txId
     , wtxId
+    , isCoinbase 
+    , isSegWit 
     ) where
 
 import qualified Data.ByteString as BS

@@ -1,16 +1,30 @@
 module Bitcoin.Network.Verifier
-    ( calculateNewTarget
+    ( verifyHeadersIntegrity
+    , calculateNewTarget
     , epochRangeFromHeight
     , targetToBits
     , bitsToTarget
     , getMerkleRoot 
+    , getWitnessmerkleRoot
     ) where
 
-import Data.Word (Word32)
-import Data.Bits (shiftR, shiftL, (.&.), (.|.))
+import Data.Word                    (Word32)
+import Data.Bits                    (shiftR, shiftL, (.&.), (.|.))
 import qualified Data.ByteString as BS
+import qualified Data.Serialize  as SR
 import Bitcoin.Network.Message
 import Utils.Hash (hash256)
+
+-- Returns: Hash of last block header if chain of headers are valid
+verifyHeadersIntegrity :: BS.ByteString -> [BlockHeader] -> Maybe BS.ByteString
+verifyHeadersIntegrity initialHash headers = foldl' foldlFunc (Just initialHash) headers
+  where
+    foldlFunc :: Maybe BS.ByteString -> BlockHeader -> Maybe BS.ByteString
+    foldlFunc Nothing     _                                   = Nothing
+    foldlFunc (Just hash) header | hash == header.bhPrevBlock = Just (getHeaderHash header)
+                                 | otherwise                  = Nothing
+    getHeaderHash :: BlockHeader -> BS.ByteString
+    getHeaderHash = hash256 . BS.take 80 . SR.runPut . SR.put
 
 -- 2016번째 블록과 1번째 블록의 타임스탬프를 사용하여 계산합니다.
 calculateNewTarget :: Integer -> Word32 -> Word32 -> Integer
@@ -72,20 +86,17 @@ getMerkleRoot :: [Tx] -> Hash32
 getMerkleRoot [] = error "Empty transaction list"
 getMerkleRoot txs = head $ toRoot (fmap txId txs)
 
-getWitnessmerkelRoot :: [Tx] -> Hash32
-getWitnessmerkelRoot [] = error "Empty transaction list"
-getWitnessmerkelRoot txs = head $ toRoot (fmap wtxId txs)
+getWitnessmerkleRoot :: [Tx] -> Hash32
+getWitnessmerkleRoot [] = error "Empty transaction list"
+getWitnessmerkleRoot txs = head $ toRoot (fmap wtxId txs)
 
 toRoot :: [Hash32] -> [Hash32]
 toRoot []          = []
 toRoot (root : []) = [root]
 toRoot internal    = toRoot (getUpperLayer internal)
-
-getUpperLayer :: [Hash32] -> [Hash32]
-getUpperLayer []             = []
-getUpperLayer (l : [])       = getUpperLayer [l, l]
-getUpperLayer (l : r : rest) = Hash32 (hash256 (unHash32 l <> unHash32 r)) : getUpperLayer rest
-
-combineHashes :: Hash32 -> Hash32 -> Hash32
-combineHashes (Hash32 l) (Hash32 r) = Hash32 $ hash256 (l <> r)
+  where
+    getUpperLayer :: [Hash32] -> [Hash32]
+    getUpperLayer []             = []
+    getUpperLayer (l : [])       = getUpperLayer [l, l]
+    getUpperLayer (l : r : rest) = Hash32 (hash256 (unHash32 l <> unHash32 r)) : getUpperLayer rest
 

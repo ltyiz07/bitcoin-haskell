@@ -3,9 +3,10 @@
 
 module Bitcoin.Network.BlockSpec (spec) where
 
-import qualified Test.Hspec  as H
-import qualified Data.ByteString       as BS
-import qualified Data.Serialize        as SR
+import qualified Data.List            as L
+import qualified Test.Hspec           as H
+import qualified Data.ByteString      as BS
+import qualified Data.Serialize       as SR
 
 import Bitcoin.Network.Message
 import Bitcoin.Network.Verifier 
@@ -23,23 +24,13 @@ spec = do
     H.describe "Verify bitcoin block headers" $ do
         H.it "test block headers integrity" $ do
             let headerHashOfBlock944318 = BS.reverse . hexToBytes $ "0000000000000000000166c915e785081c6188784c8a5cadd6e63d87e8b698b1"
-                validateHeaderIntegrity :: [BlockHeader] -> Maybe BS.ByteString
-                validateHeaderIntegrity = Prelude.foldl' foldlFunc (Just genesisHashLE)
-                  where
-                    foldlFunc :: Maybe BS.ByteString -> BlockHeader -> Maybe BS.ByteString
-                    foldlFunc (Just hash) header | hash == header.bhPrevBlock = Just (getHeaderHash header)
-                                                 | otherwise                  = Nothing
-                    foldlFunc Nothing     _                                   = Nothing
-
-                    getHeaderHash :: BlockHeader -> BS.ByteString
-                    getHeaderHash = hash256 . BS.take 80 . SR.runPut . SR.put
-
             content <- BS.readFile headersFilename 
             blockHeaders <- either error pure (parseAllBlockHeader content)
             Prelude.putStrLn $ "  Total block headers: " ++ show (Prelude.length blockHeaders)
-            lastHeaderHash <- case validateHeaderIntegrity blockHeaders of
+            lastHeaderHash <- case verifyHeadersIntegrity genesisHashLE blockHeaders of
                 Nothing -> error "Block headers not valid"
                 Just h  -> return h
+            length blockHeaders `H.shouldBe` 944318
             lastHeaderHash `H.shouldBe` headerHashOfBlock944318
 
     H.describe "Verify target difficulty" $ do
@@ -63,7 +54,6 @@ spec = do
             let blockHeader = last blockHeaders
                 pow = bytesToInteger . BS.reverse . hash256 . SR.runPut . SR.put $ blockHeader
             pow `H.shouldSatisfy` (target >=)
-                
 
     H.describe "Verify merkle root" $ do
         H.it "generate merkle root" $ do
@@ -72,8 +62,23 @@ spec = do
             let block = last blocks
                 header = block.blockHeader
                 txs = block.blockTxs
-            print (txs !! 0)
             Hash32 header.bhMerkleRoot `H.shouldBe` getMerkleRoot txs
+
+    H.describe "Verify witness merkle root" $ do
+        H.it "generate witness merkle root" $ do
+            content <- BS.readFile blocksFilename 
+            blocks <- either error pure (parseAllBlock content)
+            let block = last blocks
+                txs = block.blockTxs
+                coinbaseTx = txs !! 0
+            isSegWit coinbaseTx `H.shouldBe` True
+            isCoinbase coinbaseTx `H.shouldBe` True
+            let preBytes = hexToBytes "6a24aa21a9ed"
+                commitment = case L.find (\x -> BS.isPrefixOf preBytes x.pkScript) coinbaseTx.txOutputs of
+                    Just output -> output.pkScript
+                    Nothing -> error "Commitment hash not found"
+                sample = preBytes <> hash256 (unHash32 (getWitnessmerkleRoot txs) <> (hexToBytes "0000000000000000000000000000000000000000000000000000000000000000"))
+            sample `H.shouldBe` commitment
 
     H.describe "test transaction hash" $ do
         H.it "get transactino hash" $ do
@@ -88,8 +93,6 @@ spec = do
                 tx2Hash         = txId tx2
                 tx1PrevHash     = (tx1.txInputs !! 0).previousOutput.hash
                 tx1PrevIndex    = fromIntegral (tx1.txInputs !! 0).previousOutput.index
-            print $ tx2.txOutputs !! tx1PrevIndex 
-            print $ tx1 
             tx2Hash `H.shouldBe` tx1PrevHash 
 
 parseAllBlock :: BS.ByteString -> Either String [Block]
