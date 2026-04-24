@@ -5,12 +5,14 @@ module Bitcoin.Network.Peer
 
 import Network.Socket               (SockAddr)
 import qualified Data.ByteString    as BS
-import Control.Monad                (when)
+import Control.Monad                (when, forM_)
 import Control.Monad.Except         (ExceptT(..), runExceptT, throwError)
 import Control.Monad.State          as ST
 import Data.Serialize               as SR
 
 import Bitcoin.Network.Message
+import Bitcoin.BloomFilter
+import Bitcoin.MerkleTree
 import Bitcoin.Network.Connection
     ( NodeConnection, ConnectionError(..), withConnection, sendMessage, recvMessage )
 import Bitcoin.Network.Handshake    ( performHandshake, liftHandshakeException )
@@ -104,17 +106,43 @@ dispatchLoop :: NodeConnection -> PeerM ()
 dispatchLoop conn = do
     msg :: Message <- ST.lift $ recvMessage conn
     case msg.header.command of
-        "ping"    -> handlePing conn msg.payload >> dispatchLoop conn
-        "headers" -> handleHeaders msg.payload   >> peerLoop conn
-        "block"   -> handleBlock msg.payload     >> peerLoop conn
-        "inv"     -> handleInv msg.payload       >> dispatchLoop conn
-        otherCmd  -> do
+        "ping"        -> handlePing conn msg.payload >> dispatchLoop conn
+        "headers"     -> handleHeaders msg.payload   >> peerLoop conn
+        "block"       -> handleBlock msg.payload     >> peerLoop conn
+        "merkleblock" -> handleMerkleBlock msg.payload >> dispatchLoop conn
+        "inv"         -> handleInv msg.payload       >> dispatchLoop conn
+        otherCmd      -> do
             liftIO $ putStrLn $ "[Peer] 무시: " ++ show otherCmd
             dispatchLoop conn
 
 -- ---------------------------------------------------------------------------
 -- 메시지 핸들러
 -- ---------------------------------------------------------------------------
+
+handleMerkleBlock :: BS.ByteString -> PeerM ()
+handleMerkleBlock payload = do
+    mb :: MerkleBlock <- parseOrFail payload
+    let pmt = PartialMerkleTree mb.mbTotalTxs mb.mbHashes mb.mbFlags
+    
+    liftIO $ do
+        putStrLn "[Peer] 수신: merkleblock"
+        putStrLn $ "  ├─ 해시 개수: " ++ show (length mb.mbHashes)
+        putStrLn $ "  └─ 총 트랜잭션: " ++ show mb.mbTotalTxs
+    
+    case extractMatches pmt of
+        Left err -> liftIO $ putStrLn $ "  ⚠️ 머클 블록 검증 실패: " ++ err
+        Right (recalcRoot, matched) -> do
+            liftIO $ do
+                let expectedRoot = mb.mbHeader.bhMerkleRoot
+                putStrLn $ "  ├─ 계산된 루트: " ++ bytesToHex recalcRoot
+                putStrLn $ "  ├─ 헤더 루트:   " ++ bytesToHex expectedRoot
+                if recalcRoot == expectedRoot
+                    then putStrLn "  ✅ 머클 루트 일치!"
+                    else putStrLn "  ❌ 머클 루트 불일치 (검증 실패)!"
+                
+                putStrLn $ "  └─ 매칭된 트랜잭션 (" ++ show (length matched) ++ "개):"
+                forM_ matched $ \txid ->
+                    putStrLn $ "     - " ++ bytesToHex txid
 
 handlePing :: NodeConnection -> BS.ByteString -> PeerM ()
 handlePing conn payload = do
@@ -210,6 +238,25 @@ sendGetData conn targetHash = do
         msg = buildMainnetMessage (GetData [inv])
     sendMessage conn msg
     liftIO $ putStrLn $ "[Peer] 전송: getdata (block: " ++ bytesToHex targetHash ++ ")"
+
+sendFilterLoad :: NodeConnection -> BloomFilter -> ExceptT ConnectionError IO ()
+sendFilterLoad conn bf = do
+    let payload = FilterLoad
+            { flFilter     = bf.bfData
+            , flHashFuncs  = bf.bfHashFuncs
+            , flTweak      = bf.bfTweak
+            , flFlags      = bf.bfFlags
+            }
+        msg = buildMainnetMessage payload
+    sendMessage conn msg
+    liftIO $ putStrLn "[Peer] 전송: filterload"
+
+sendGetFilteredData :: NodeConnection -> BS.ByteString -> ExceptT ConnectionError IO ()
+sendGetFilteredData conn targetHash = do
+    let inv = InvVector { invType = MsgFilteredBlock, invHash = targetHash }
+        msg = buildMainnetMessage (GetData [inv])
+    sendMessage conn msg
+    liftIO $ putStrLn $ "[Peer] 전송: getdata (filtered block: " ++ bytesToHex targetHash ++ ")"
 
 parseOrFail :: SR.Serialize a => BS.ByteString -> PeerM a
 parseOrFail bs = case SR.runGet SR.get bs of

@@ -34,6 +34,8 @@ library
                     , Bitcoin.Network.Handshake
                     , Bitcoin.Network.Peer
                     , Bitcoin.Network.Verifier
+                    , Bitcoin.BloomFilter
+                    , Bitcoin.MerkleTree
                     , Utils.Prime
                     , Utils.Hex
                     , Utils.Hash
@@ -56,6 +58,10 @@ library
                     , Bitcoin.Network.Message.Payload.Tx
                     , Bitcoin.Network.Message.Payload.Inv
                     , Bitcoin.Network.Message.Payload.Block
+                    , Bitcoin.Network.Message.Payload.FilterLoad
+                    , Bitcoin.Network.Message.Payload.FilterAdd
+                    , Bitcoin.Network.Message.Payload.FilterClear
+                    , Bitcoin.Network.Message.Payload.MerkleBlock
 
     build-depends:    base ^>= 4.21.0.0
                     , text ^>= 2.1.0
@@ -108,6 +114,8 @@ test-suite impl-btc-test
                     , Bitcoin.Network.DiscoverySpec
                     , Bitcoin.Network.ConnectionSpec
                     , Bitcoin.Network.BlockSpec
+                    , Bitcoin.BloomFilterSpec
+                    , Bitcoin.MerkleTreeSpec
 
     -- LANGUAGE extensions used by modules in this package.
     other-extensions:   OverloadedStrings

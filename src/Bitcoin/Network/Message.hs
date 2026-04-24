@@ -15,6 +15,10 @@ module Bitcoin.Network.Message
     , module Bitcoin.Network.Message.Payload.Tx
     , module Bitcoin.Network.Message.Payload.Inv
     , module Bitcoin.Network.Message.Payload.Block
+    , module Bitcoin.Network.Message.Payload.FilterLoad
+    , module Bitcoin.Network.Message.Payload.FilterAdd
+    , module Bitcoin.Network.Message.Payload.FilterClear
+    , module Bitcoin.Network.Message.Payload.MerkleBlock
     ) where
 
 import Control.Monad (unless)
@@ -43,6 +47,10 @@ import Bitcoin.Network.Message.Payload.InvType
 import Bitcoin.Network.Message.Payload.Tx
 import Bitcoin.Network.Message.Payload.Inv
 import Bitcoin.Network.Message.Payload.Block
+import Bitcoin.Network.Message.Payload.FilterLoad
+import Bitcoin.Network.Message.Payload.FilterAdd
+import Bitcoin.Network.Message.Payload.FilterClear
+import Bitcoin.Network.Message.Payload.MerkleBlock
 
 
 data Message = Message 

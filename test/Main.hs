@@ -14,6 +14,8 @@ import qualified Bitcoin.Keys.WIFSpec
 import qualified Bitcoin.Network.DiscoverySpec
 import qualified Bitcoin.Network.ConnectionSpec
 import qualified Bitcoin.Network.BlockSpec
+import qualified Bitcoin.BloomFilterSpec
+import qualified Bitcoin.MerkleTreeSpec
 
 
 main :: IO ()
@@ -30,3 +32,5 @@ main = hspec $ do
     Bitcoin.Network.DiscoverySpec.spec
     Bitcoin.Network.ConnectionSpec.spec
     Bitcoin.Network.BlockSpec.spec
+    Bitcoin.BloomFilterSpec.spec
+    Bitcoin.MerkleTreeSpec.spec
