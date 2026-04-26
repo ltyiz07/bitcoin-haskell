@@ -33,6 +33,7 @@ library
                     , Bitcoin.Network.Connection
                     , Bitcoin.Network.Handshake
                     , Bitcoin.Network.Peer
+                    , Bitcoin.Network.PeerSelection
                     , Bitcoin.Network.Verifier
                     , Bitcoin.BloomFilter
                     , Bitcoin.MerkleTree
@@ -75,6 +76,7 @@ library
                     , time ^>= 1.14
                     , random ^>= 1.2.0.0
                     , mtl ^>= 2.3.0
+                    , async ^>= 2.2.5
 
     hs-source-dirs:   src
     default-language: GHC2024
@@ -96,6 +98,8 @@ executable impl-btc
     -- other-extensions:
     build-depends:    base
                     , impl-btc
+                    , bytestring
+                    , network
     hs-source-dirs:   app
     default-language: GHC2024
 

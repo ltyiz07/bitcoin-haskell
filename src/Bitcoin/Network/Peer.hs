@@ -1,6 +1,8 @@
 module Bitcoin.Network.Peer
     ( runPeer
     , genesisHashLE
+    , PeerConfig(..)
+    , PeerTask(..)
     ) where
 
 import Network.Socket               (SockAddr)
@@ -23,6 +25,17 @@ import Utils.Hex                    ( bytesToHex, hexToBytes )
 -- 타입
 -- ---------------------------------------------------------------------------
 
+data PeerTask
+    = TaskSyncHeaders
+    | TaskDownloadBlocks [BS.ByteString]
+    | TaskVerifyTx BS.ByteString [BS.ByteString] -- Target TxId, Block hashes to check
+    deriving (Eq, Show)
+
+data PeerConfig = PeerConfig
+    { task         :: PeerTask
+    , saveFilename :: FilePath
+    } deriving (Eq, Show)
+
 data SyncPhase
     = SyncHeaders BS.ByteString Int
     | SyncBlocks [BS.ByteString] Int
@@ -30,12 +43,11 @@ data SyncPhase
     | Listening
     deriving (Eq, Show)
 
--- | SyncPhase 외 변하지 않는 설정값만 남겼습니다.
 data SyncState = SyncState
     { phase              :: SyncPhase
     , peerBlockHeight    :: Int
-    , bhResBytesFilename :: String
-    , blockResFilename   :: String
+    , resFilename        :: String
+    , targetTxIds        :: [BS.ByteString]
     } deriving (Eq, Show)
 
 type PeerM = ST.StateT SyncState (ExceptT ConnectionError IO)
@@ -44,29 +56,53 @@ type PeerM = ST.StateT SyncState (ExceptT ConnectionError IO)
 -- 진입점
 -- ---------------------------------------------------------------------------
 
-runPeer :: SockAddr -> IO ()
-runPeer addr =
-    runExceptT (withConnection addr peerSession) >>= \case
+runPeer :: SockAddr -> PeerConfig -> IO ()
+runPeer addr config =
+    runExceptT (withConnection addr (peerSession config)) >>= \case
         Left  err -> putStrLn $ "[Peer] 종료: " ++ show err
         Right _   -> putStrLn   "[Peer] 정상 종료"
 
-peerSession :: NodeConnection -> ExceptT ConnectionError IO ()
-peerSession conn = do
+peerSession :: PeerConfig -> NodeConnection -> ExceptT ConnectionError IO ()
+peerSession config conn = do
     peerVersion <- liftHandshakeException $ performHandshake conn
     liftIO $ do
-        putStrLn "[Peer] Peer version"
+        putStrLn "[Peer] 연결 성공"
         putStrLn $ "  ├─ 프로토콜:   " ++ show peerVersion.versionVersion
-        putStrLn $ "  ├─ 서비스:     " ++ show peerVersion.versionServices
-        putStrLn $ "  ├─ 클라이언트: " ++ show peerVersion.versionUserAgent
         putStrLn $ "  └─ 블록 높이:  " ++ show peerVersion.versionStartHeight
-    let initialState = SyncState
-            -- { phase              = SyncBlocks (getTargetBlockHashes 930000 930004) 0
-            { phase              = Listening
-            , peerBlockHeight    = fromIntegral peerVersion.versionStartHeight
-            , bhResBytesFilename = "data/blockheaders.dat"
-            , blockResFilename   = "data/blocks_930000_to_930004_wit.dat"
-            }
-    ST.evalStateT (peerLoop conn) initialState
+    
+    -- Task 에 따른 초기화 로직
+    case config.task of
+        TaskSyncHeaders -> do
+            let initialState = SyncState
+                    { phase           = SyncHeaders genesisHashLE 0
+                    , peerBlockHeight = fromIntegral peerVersion.versionStartHeight
+                    , resFilename     = config.saveFilename
+                    , targetTxIds     = []
+                    }
+            ST.evalStateT (peerLoop conn) initialState
+
+        TaskDownloadBlocks hashes -> do
+            let initialState = SyncState
+                    { phase           = SyncBlocks hashes 0
+                    , peerBlockHeight = fromIntegral peerVersion.versionStartHeight
+                    , resFilename     = config.saveFilename
+                    , targetTxIds     = []
+                    }
+            ST.evalStateT (peerLoop conn) initialState
+
+        TaskVerifyTx targetTx blockHashes -> do
+            -- 블룸 필터 등록
+            let emptyFilter = newBloomFilter 10 3 0 1
+                myFilter = bloomFilterAdd emptyFilter targetTx
+            sendFilterLoad conn myFilter
+            
+            let initialState = SyncState
+                    { phase           = SyncBlocks blockHashes 0
+                    , peerBlockHeight = fromIntegral peerVersion.versionStartHeight
+                    , resFilename     = config.saveFilename
+                    , targetTxIds     = [targetTx]
+                    }
+            ST.evalStateT (peerLoop conn) initialState
 
 -- ---------------------------------------------------------------------------
 -- 메인 루프
@@ -92,7 +128,11 @@ peerLoop conn = do
             ST.modify' $ \s -> s { phase = Completed downloadedCount }
             peerLoop conn
         SyncBlocks (targetHash : _) _ -> do
-            ST.lift $ sendGetData conn targetHash
+            syncState <- ST.get
+            -- VerifyTx 작업인 경우에만 filtered data(merkleblock) 요청
+            case syncState.targetTxIds of
+                [] -> ST.lift $ sendGetData conn targetHash
+                _  -> ST.lift $ sendGetFilteredData conn targetHash
             dispatchLoop conn
 
         Listening -> do
@@ -109,8 +149,8 @@ dispatchLoop conn = do
         "ping"        -> handlePing conn msg.payload >> dispatchLoop conn
         "headers"     -> handleHeaders msg.payload   >> peerLoop conn
         "block"       -> handleBlock msg.payload     >> peerLoop conn
-        "merkleblock" -> handleMerkleBlock msg.payload >> dispatchLoop conn
-        "inv"         -> handleInv msg.payload       >> dispatchLoop conn
+        "merkleblock" -> handleMerkleBlock conn msg.payload >> peerLoop conn
+        "inv"         -> handleInv conn msg.payload  >> dispatchLoop conn
         otherCmd      -> do
             liftIO $ putStrLn $ "[Peer] 무시: " ++ show otherCmd
             dispatchLoop conn
@@ -119,20 +159,28 @@ dispatchLoop conn = do
 -- 메시지 핸들러
 -- ---------------------------------------------------------------------------
 
-handleMerkleBlock :: BS.ByteString -> PeerM ()
-handleMerkleBlock payload = do
+handleMerkleBlock :: NodeConnection -> BS.ByteString -> PeerM ()
+handleMerkleBlock _conn payload = do
     mb :: MerkleBlock <- parseOrFail payload
     let pmt = PartialMerkleTree mb.mbTotalTxs mb.mbHashes mb.mbFlags
+        currentBlockHash = blockHeaderHash mb.mbHeader
     
     liftIO $ do
-        putStrLn "[Peer] 수신: merkleblock"
+        putStrLn $ "[Peer] 수신: merkleblock (" ++ bytesToHex currentBlockHash ++ ")"
         putStrLn $ "  ├─ 해시 개수: " ++ show (length mb.mbHashes)
         putStrLn $ "  └─ 총 트랜잭션: " ++ show mb.mbTotalTxs
     
     case extractMatches pmt of
         Left err -> liftIO $ putStrLn $ "  ⚠️ 머클 블록 검증 실패: " ++ err
         Right (recalcRoot, matched) -> do
+            syncState <- ST.get
+            let targets = syncState.targetTxIds
             liftIO $ do
+                -- 파일 저장
+                if syncState.phase == SyncBlocks [currentBlockHash] 0 -- 첫 블록이면 새로 쓰기
+                    then BS.writeFile syncState.resFilename payload
+                    else BS.appendFile syncState.resFilename payload
+
                 let expectedRoot = mb.mbHeader.bhMerkleRoot
                 putStrLn $ "  ├─ 계산된 루트: " ++ bytesToHex recalcRoot
                 putStrLn $ "  ├─ 헤더 루트:   " ++ bytesToHex expectedRoot
@@ -141,8 +189,17 @@ handleMerkleBlock payload = do
                     else putStrLn "  ❌ 머클 루트 불일치 (검증 실패)!"
                 
                 putStrLn $ "  └─ 매칭된 트랜잭션 (" ++ show (length matched) ++ "개):"
-                forM_ matched $ \txid ->
-                    putStrLn $ "     - " ++ bytesToHex txid
+                forM_ matched $ \txid -> do
+                    let isTarget = txid `elem` targets
+                    putStrLn $ "     - " ++ bytesToHex txid ++ (if isTarget then " ⭐ [검증됨: 목표 트랜잭션]" else "")
+
+            -- SyncBlocks 페이즈인 경우 다음 블록으로 진행
+            case syncState.phase of
+                SyncBlocks (expectedHash : rest) downloadedCount 
+                    | currentBlockHash == expectedHash -> do
+                        liftIO $ putStrLn "  └─ 동기화 진행 중... 다음 블록 요청 예정"
+                        ST.modify' $ \s -> s { phase = SyncBlocks rest (downloadedCount + 1) }
+                _ -> return ()
 
 handlePing :: NodeConnection -> BS.ByteString -> PeerM ()
 handlePing conn payload = do
@@ -174,8 +231,8 @@ handleHeaders payload = do
                 -- 첫 수신이면 새 파일, 이후는 이어 쓰기
                 let serialized = runPut (SR.put blockHeaders)
                 if oldCount == 0
-                    then BS.writeFile  syncState.bhResBytesFilename serialized
-                    else BS.appendFile syncState.bhResBytesFilename serialized
+                    then BS.writeFile  syncState.resFilename serialized
+                    else BS.appendFile syncState.resFilename serialized
 
             ST.modify' $ \s -> s
                 { phase = if isChainEnd
@@ -198,25 +255,34 @@ handleBlock payload = do
                 putStrLn $ "  └─ 크기:        " ++ show (BS.length payload) ++ " bytes"
             
             if downloadedCount == 0
-                then liftIO $ BS.writeFile syncState.blockResFilename payload
-                else liftIO $ BS.appendFile syncState.blockResFilename payload
+                then liftIO $ BS.writeFile syncState.resFilename payload
+                else liftIO $ BS.appendFile syncState.resFilename payload
             
             ST.modify' $ \s -> s { phase = SyncBlocks rest (downloadedCount + 1) }
             
         _ -> liftIO $ putStrLn "[Peer] 예상치 못한 메시지 수신 -- Unreachable"
 
-handleInv :: BS.ByteString -> PeerM ()
-handleInv payload = do
+handleInv :: NodeConnection -> BS.ByteString -> PeerM ()
+handleInv conn payload = do
     invMsg :: Inv <- parseOrFail payload
-    let count = length invMsg.inventory
+    let items = invMsg.inventory
+        count = length items
+    
     liftIO $ do
         putStrLn "[Peer] 수신: inv"
         putStrLn $ "  ├─ 아이템 개수: " ++ show count
-        putStrLn $ "  └─ 크기:        " ++ show (BS.length payload) ++ " bytes"
-        -- 내용물이 있다면 어떤 종류의 데이터를 광고하는지 첫 번째 항목만 출력
-        when (count > 0) $ do
-            let firstItem = head invMsg.inventory
-            putStrLn $ "     (첫 번째 항목: " ++ show firstItem.invType ++ " - " ++ bytesToHex firstItem.invHash ++ ")"
+    
+    case items of
+        [] -> return ()
+        (firstItem:_) -> do
+            liftIO $ putStrLn $ "  └─ 첫 번째 항목: " ++ show firstItem.invType ++ " - " ++ bytesToHex firstItem.invHash
+            
+            -- 블록 광고인 경우 자동으로 merkleblock 요청
+            forM_ items $ \iv -> do
+                case iv.invType of
+                    MsgBlock -> ST.lift $ sendGetFilteredData conn iv.invHash
+                    MsgWitnessBlock -> ST.lift $ sendGetFilteredData conn iv.invHash
+                    _ -> return ()
 
 -- ---------------------------------------------------------------------------
 -- 유틸리티
