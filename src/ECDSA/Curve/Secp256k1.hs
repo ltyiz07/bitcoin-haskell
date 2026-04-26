@@ -1,8 +1,3 @@
-{-# LANGUAGE DataKinds #-}
-{-# LANGUAGE TypeOperators #-}
-{-# LANGUAGE TypeApplications #-}
-{-# LANGUAGE OverloadedStrings #-}
-
 module ECDSA.Curve.Secp256k1
     ( FG
     , secp256k1

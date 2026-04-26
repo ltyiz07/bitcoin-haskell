@@ -1,58 +1,54 @@
-{-# LANGUAGE OverloadedStrings #-}
+{-# LANGUAGE OverloadedRecordDot #-}
 
 module Bitcoin.Keys.SECSpec (spec) where
 
 import qualified Test.Hspec as H
 
 import Utils.Hex
-import ECDSA.Curve.EllipticCurve
-import ECDSA.Curve.Secp256k1
 import Bitcoin.Keys.SEC
 
 
 spec :: H.Spec
 spec = do
     H.describe "SECFormat test" $ do
-        let x :: FG  = 0x887387e452b8eacc4acfde10d9aaf7f6d9a0f975aabb10d006e4da568744d06c
-            y1 :: FG = 0x61de6d95231cd89026e286df3b6ae4a894a3378e393e93a0f45b666329a0ae34
-            y2 :: FG = 0x9e21926adce3276fd91d7920c4951b576b5cc871c6c16c5f0ba4999bd65f4dfb
+        let x  = 0x887387e452b8eacc4acfde10d9aaf7f6d9a0f975aabb10d006e4da568744d06c
+            y1 = 0x61de6d95231cd89026e286df3b6ae4a894a3378e393e93a0f45b666329a0ae34
+            y2 = 0x9e21926adce3276fd91d7920c4951b576b5cc871c6c16c5f0ba4999bd65f4dfb
 
-            publicPoint1        = Point x y1
             uncompressedSECKey1 = hexToBytes "04887387e452b8eacc4acfde10d9aaf7f6d9a0f975aabb10d006e4da568744d06c61de6d95231cd89026e286df3b6ae4a894a3378e393e93a0f45b666329a0ae34"
             compressedSECKey1   = hexToBytes "02887387e452b8eacc4acfde10d9aaf7f6d9a0f975aabb10d006e4da568744d06c"
 
-            publicPoint2        = Point x y2
             uncompressedSECKey2 = hexToBytes "04887387e452b8eacc4acfde10d9aaf7f6d9a0f975aabb10d006e4da568744d06c9e21926adce3276fd91d7920c4951b576b5cc871c6c16c5f0ba4999bd65f4dfb"
             compressedSECKey2   = hexToBytes "03887387e452b8eacc4acfde10d9aaf7f6d9a0f975aabb10d006e4da568744d06c"
 
         H.it "Encode SEC Uncompressed format case 1" $ do
-            let result = encodeSEC Uncompressed publicPoint1
-            result `H.shouldBe` uncompressedSECKey1
+            let result = Uncompressed x y1
+            putSEC result `H.shouldBe` uncompressedSECKey1
 
         H.it "Encode SEC Uncompressed format case 2" $ do
-            let result = encodeSEC Uncompressed publicPoint2
-            result `H.shouldBe` uncompressedSECKey2
+            let result = Uncompressed x y2
+            putSEC result `H.shouldBe` uncompressedSECKey2
 
         H.it "Encode SEC Compressed format case 1" $ do
-            let result = encodeSEC Compressed publicPoint1
-            result `H.shouldBe` compressedSECKey1
+            let result = Compressed x True
+            putSEC result `H.shouldBe` compressedSECKey1
 
         H.it "Encode SEC Compressed format case 2" $ do
-            let result = encodeSEC Compressed publicPoint2
-            result `H.shouldBe` compressedSECKey2
+            let result = Compressed x False
+            putSEC result `H.shouldBe` compressedSECKey2
 
         H.it "Decode SEC Uncompressed format case 1" $ do
-            let result = decodeSEC uncompressedSECKey1
-            result `H.shouldBe` Just publicPoint1
+            let result = getSEC uncompressedSECKey1
+            result `H.shouldBe` Right (Uncompressed x y1)
 
         H.it "Decode SEC Uncompressed format case 2" $ do
-            let result = decodeSEC uncompressedSECKey2
-            result `H.shouldBe` Just publicPoint2
+            let result = getSEC uncompressedSECKey2
+            result `H.shouldBe` Right (Uncompressed x y2)
 
         H.it "Decode SEC Compressed format case 1" $ do
-            let result = decodeSEC compressedSECKey1
-            result `H.shouldBe` Just publicPoint1
+            let result = getSEC compressedSECKey1
+            result `H.shouldBe` Right (Compressed x True)
 
         H.it "Decode SEC Compressed format case 2" $ do
-            let result = decodeSEC compressedSECKey2
-            result `H.shouldBe` Just publicPoint2
+            let result = getSEC compressedSECKey2
+            result `H.shouldBe` Right (Compressed x False)

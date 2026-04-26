@@ -1,78 +1,68 @@
 module Bitcoin.Keys.SEC
-    ( SECFormat(..)
-    , encodeSEC
-    , decodeSEC
+    ( SEC(..)
+    , putSEC
+    , getSEC
     ) where
 
-import qualified Data.ByteString as B
-import GHC.TypeLits
-import Data.Proxy
-
-import Utils.Arithmetic (intToBytes32, bytesToInteger, powMod)
-import ECDSA.Curve.EllipticCurve (Point(..), mkPointOnCurve)
-import ECDSA.Curve.Secp256k1 (FG, secp256k1)
-import ECDSA.Field.FiniteField (FiniteField(..))
+import qualified Data.ByteString as BS
+import qualified Data.Serialize  as SR
 
 
-data SECFormat = Compressed | Uncompressed
-    deriving (Show, Eq)
+-- | SEC 공개키 구조체
+data SEC = Uncompressed Integer Integer  -- ^ X, Y 좌표
+         | Compressed Integer Bool       -- ^ X 좌표, Y의 짝수 여부 (True = 짝수, False = 홀수)
+         deriving (Show, Eq)
 
-encodeSEC :: SECFormat -> Point FG -> B.ByteString
-encodeSEC Compressed   (Point x y) = encodeSECCompressed x y
-encodeSEC Uncompressed (Point x y) = encodeSECUncompressed x y
-encodeSEC _            Infinity    = error "encodeSEC: Cannot encode Infinity point in SEC format"
+-- | Big-Endian ByteString을 Integer로 변환
+bsToInteger :: BS.ByteString -> Integer
+bsToInteger = BS.foldl' (\acc b -> (acc * 256) + fromIntegral b) 0
 
-decodeSEC :: B.ByteString -> Maybe (Point FG)
-decodeSEC bs =
-    case B.uncons bs of
-        Nothing -> Nothing
-        Just (prefix, xyBytes) ->
-            case prefix of
-                0x02 -> decodeSECCompressed False xyBytes -- Even case
-                0x03 -> decodeSECCompressed True xyBytes
-                0x04 -> decodeSECUncompressed xyBytes
-                _    -> Nothing
+-- | Integer를 정확히 32바이트 길이의 ByteString으로 변환 (앞부분 0 패딩)
+integerToBS32 :: Integer -> BS.ByteString
+integerToBS32 n =
+    let bs = integerToBS n
+        len = BS.length bs
+    in if len < 32
+       then BS.replicate (32 - len) 0 <> bs
+       else BS.drop (len - 32) bs
 
-encodeSECCompressed :: FiniteField p -> FiniteField p -> B.ByteString
-encodeSECCompressed x y =
-    let prefix = if even (getValue y) then 0x02 else 0x03
-    in B.cons prefix (intToBytes32 (getValue x))
+-- | Integer를 Big-Endian ByteString으로 변환
+integerToBS :: Integer -> BS.ByteString
+integerToBS 0 = BS.empty
+integerToBS n = BS.pack $ reverse $ go n
+  where
+    go 0 = []
+    go x = fromIntegral (x `mod` 256) : go (x `div` 256)
 
-encodeSECUncompressed :: FiniteField p -> FiniteField p -> B.ByteString
-encodeSECUncompressed x y = B.concat [B.singleton 0x04, intToBytes32 (getValue x), intToBytes32 (getValue y)]
+instance SR.Serialize SEC where
+    put (Uncompressed x y) = do
+        SR.putWord8 0x04
+        SR.putByteString (integerToBS32 x)
+        SR.putByteString (integerToBS32 y)
+        
+    put (Compressed x isEven) = do
+        SR.putWord8 (if isEven then 0x02 else 0x03)
+        SR.putByteString (integerToBS32 x)
 
-decodeSECCompressed :: Bool -> B.ByteString -> Maybe (Point FG)
-decodeSECCompressed isOdd xBytes
-    | B.length xBytes /= 32 = Nothing
-    | otherwise =
-        let x = fromInteger $ bytesToInteger xBytes :: FG
-            ySquare = x ^ (3 :: Integer) + 7
-        in case sqrtModP ySquare of
-            Nothing -> Nothing
-            Just (evenY, oddY) -> 
-                let y = if isOdd then oddY else evenY
-                in mkPointOnCurve secp256k1 x y
+    get = do
+        marker <- SR.getWord8
+        case marker of
+            0x04 -> do
+                xBytes <- SR.getByteString 32
+                yBytes <- SR.getByteString 32
+                return $ Uncompressed (bsToInteger xBytes) (bsToInteger yBytes)
+            0x02 -> do
+                xBytes <- SR.getByteString 32
+                return $ Compressed (bsToInteger xBytes) True
+            0x03 -> do
+                xBytes <- SR.getByteString 32
+                return $ Compressed (bsToInteger xBytes) False
+            _ -> fail $ "Invalid SEC marker: " ++ show marker
 
-decodeSECUncompressed :: B.ByteString -> Maybe (Point FG)
-decodeSECUncompressed xyBytes
-    | B.length xyBytes /= 64 = Nothing
-    | otherwise =
-        let (xBytes, yBytes) = B.splitAt 32 xyBytes
-            x = fromInteger $ bytesToInteger xBytes
-            y = fromInteger $ bytesToInteger yBytes
-        in mkPointOnCurve secp256k1 x y
 
--- Return: (Even-Y, Odd-Y)
-sqrtModP :: forall p. KnownNat p => FiniteField p -> Maybe (FiniteField p, FiniteField p)
-sqrtModP n =
-    let p_val     = natVal (Proxy @p)
-        expo  = (p_val + 1) `quot` 4
-        candidate = fromInteger $ powMod (getValue n) expo p_val
-    in if p_val `mod` 4 /= 3
-       then Nothing
-       else if candidate * candidate == n
-            then
-                let evenY = if even (getValue candidate) then candidate else negate candidate
-                    oddY  = negate evenY
-                in Just (evenY, oddY)
-            else Nothing
+putSEC :: SEC -> BS.ByteString
+putSEC = SR.runPut . SR.put
+
+getSEC :: BS.ByteString -> Either String SEC
+getSEC = SR.runGet SR.get
+

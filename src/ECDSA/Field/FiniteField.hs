@@ -1,5 +1,6 @@
 module ECDSA.Field.FiniteField
     ( FiniteField(..)
+    , sqrtModP 
     ) where
 
 import GHC.TypeLits
@@ -52,3 +53,17 @@ instance KnownNat p => Fractional (FiniteField p) where
             d_inv = invMod d p_val
         in FiniteField ((n * d_inv) `mod` p_val)
 
+-- Return: (Even-Y, Odd-Y)
+sqrtModP :: forall p. KnownNat p => FiniteField p -> Maybe (FiniteField p, FiniteField p)
+sqrtModP n =
+    let p_val     = natVal (Proxy @p)
+        expo  = (p_val + 1) `quot` 4
+        candidate = fromInteger $ powMod (getValue n) expo p_val
+    in if p_val `mod` 4 /= 3
+       then Nothing
+       else if candidate * candidate == n
+            then
+                let evenY = if even (getValue candidate) then candidate else negate candidate
+                    oddY  = negate evenY
+                in Just (evenY, oddY)
+            else Nothing
